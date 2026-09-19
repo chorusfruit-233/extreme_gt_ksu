@@ -4,6 +4,12 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: '发布 Release（包含两个版本、SHA256 和补丁）'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -58,3 +64,57 @@ jobs:
             patches/0001-kernelsu-susfs.patch
           if-no-files-found: error
           retention-days: 30
+
+  release:
+    name: Publish Release
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Download both tested variants
+        uses: actions/download-artifact@v4
+        with:
+          pattern: extreme-gt-*-${{ github.run_number }}
+          merge-multiple: true
+          path: release-assets
+      - name: Verify and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: extreme-gt-${{ github.run_id }}-${{ github.run_attempt }}
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        working-directory: release-assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          hybrid=(dist/*-hybrid_mount.zip)
+          susfs=(dist/*-susfs.zip)
+          test "${#hybrid[@]}" -eq 1
+          test "${#susfs[@]}" -eq 1
+          assets=("${hybrid[0]}" "${hybrid[0]}.sha256"
+                  "${susfs[0]}" "${susfs[0]}.sha256"
+                  patches/0001-kernelsu-hybrid_mount.patch
+                  patches/0001-kernelsu-susfs.patch)
+          for asset in "${assets[@]}"; do test -s "$asset"; done
+          (cd dist && sha256sum --check ./*.sha256)
+          cat > release-notes.md <<EOF
+          Extreme GT · KernelSU 双版本
+
+          - hybrid_mount：模块 ID extreme_gt_hybrid_mount，由 meta-hybrid_mount 挂载。
+          - susfs：模块 ID extreme_gt_susfs，skip_mount 跳过元模块，自行挂载并协同 SUSFS。
+
+          两个版本只能启用一个。切换前先禁用旧版并重启。
+          安装 ZIP 可直接下载使用；SHA256 和上游补丁同时提供。
+          已通过自动化测试；尚未实机验证。
+
+          Commit: ${COMMIT_SHA}
+          Build: ${RUN_URL}
+          EOF
+          gh release create "$RELEASE_TAG" "${assets[@]}"             --target "$COMMIT_SHA" --title "Extreme GT · $RELEASE_TAG"             --notes-file release-notes.md --draft
+          gh release edit "$RELEASE_TAG" --draft=false --latest
+          printf 'Release: https://github.com/%s/releases/tag/%s\n' "$GH_REPO" "$RELEASE_TAG" >> "$GITHUB_STEP_SUMMARY"

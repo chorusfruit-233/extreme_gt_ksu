@@ -70,7 +70,9 @@ python3 scripts/build.py --fetch               # 重新下载并校验锁定上�
 - `extreme-gt-hybrid_mount-运行编号`
 - `extreme-gt-susfs-运行编号`
 
-各自包含安装 ZIP、SHA256 和对应补丁，保留 30 天。解压 artifact 后安装里面的模块 ZIP，不要直接安装 artifact 外层 ZIP。工作流不自动发布 Release。
+各自包含安装 ZIP、SHA256 和对应补丁，保留 30 天。解压 artifact 后安装里面的模块 ZIP，不要直接安装 artifact 外层 ZIP。手动构建时可勾选 **发布 Release**（`publish_release`，默认关闭）。勾选后，仅当测试、双版本构建及 artifact 上传全部成功，才创建 Release，附带两个安装 ZIP、各自 SHA256 和补丁。发布前再次校验 SHA256，先上传到草稿，上传成功后公开并标记为 Latest。
+
+Release 标签为 `extreme-gt-运行ID-尝试次数`，指向本次构建提交；重跑使用新标签，不覆盖旧 Release。普通推送、PR 和未勾选的手动构建仅生成 artifacts。若发布在草稿阶段中断，可在 Releases 中检查该草稿。
 
 本地执行与 CI 相同的验证（需 Linux、bubblewrap、patch、KernelSU x86_64 BusyBox）：
 
