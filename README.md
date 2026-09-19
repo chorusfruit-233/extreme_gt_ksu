@@ -7,7 +7,7 @@
 | `hybrid_mount` | `extreme_gt_hybrid_mount` | 所有覆盖交给 meta-hybrid_mount，模块没有挂载入口 | KernelSU + 已启用的 Hybrid Mount |
 | `susfs` | `extreme_gt_susfs` | `skip_mount` 明确跳过元模块，模块自行逐文件 bind 并协同 SUSFS | KernelSU + SUSFS 内核 + 已安装的 `ksu_susfs` |
 
-对应产物为 `extreme_gt-4.2.1-ksu.2-hybrid_mount.zip` 和 `extreme_gt-4.2.1-ksu.2-susfs.zip`。两者修改相同配置，**只能启用其中一个**。
+对应产物为 `extreme_gt-4.2.1-ksu.3-hybrid_mount.zip` 和 `extreme_gt-4.2.1-ksu.3-susfs.zip`。两者修改相同配置，**只能启用其中一个**。
 
 ## 安装与切换
 
@@ -23,9 +23,9 @@
 ## SUSFS 版的具体行为
 
 - ZIP 内携带 `skip_mount`。安装时覆盖文件直接生成到 `payload/`，不提供可供元模块扫描的 `system/` 或顶层分区目录，也不调用元模块挂载接口。
-- 在 KernelSU `post-mount.sh` 阶段自行挂载：该阶段位于元模块挂载之后、Zygote 启动之前；无元模块时仍由 KernelSU 调用。不会在晚启动服务中补挂载。
-- 安装与启动时均检查 `ksu_susfs show enabled_features`，要求 `CONFIG_KSU_SUSFS_SUS_MOUNT`。每次成功 bind 后调用 `add_sus_mount <目标>`。
-- 如果有 `CONFIG_KSU_SUSFS_TRY_UMOUNT`，调用 `add_try_umount <目标> 1`；否则要求设备的 `/data/adb/ksud` 支持 `kernel umount add`，用 `--flags 2` 注册卸载规则。未满足接口条件则明确失败，不以普通 bind 冒充 SUSFS 协同。
+- 在 KernelSU `post-mount.sh` 阶段自行挂载：该阶段位于元模块挂载之后、Zygote 启动之前；无元模块时仍由 KernelSU 调用。不会在晚启动服务中补挂载。自动标记模式拒绝 late-load 和启动完成后补挂载，必须正常重启。
+- 安装与启动时均检查 `ksu_susfs show enabled_features`，要求 `CONFIG_KSU_SUSFS_SUS_MOUNT`。读取 `show version` 和工具帮助：SUSFS 2.x 使用内核 KSU-domain 挂载/克隆钩子的自动标记，不调用已移除的 `add_sus_mount`；旧版必须确实提供该命令才使用手动注册。
+- 如果内核有 `CONFIG_KSU_SUSFS_TRY_UMOUNT` 且工具确实提供 `add_try_umount`，调用 `add_try_umount <目标> 1`；否则要求设备的 `/data/adb/ksud` 支持 `kernel umount add`，用 `--flags 2` 注册卸载规则。未满足接口条件则明确失败，不以普通 bind 冒充 SUSFS 协同。
 - 所有覆盖为只读 bind（`ro,nosuid,nodev,noexec`），保留原配置 SELinux 标签。不下载、替换 SUSFS 二进制，不更改 SUSFS 全局隐藏设置。
 - 先检查全部清单，再开始挂载。任意挂载或注册失败，按逆序卸载本次已挂载文件并记录日志。已登记的 SUSFS 卸载路径不会主动清除全局列表，重启后清空本次内核状态。无法保证在进程被强制杀死或内核异常时完成回滚。
 - `/dev/extreme_gt_susfs.lock` 防止同一启动过程重复叠加挂载。只有挂载全部成功，`service.sh` 才继续执行上游节点调节；`system.prop` 仍由 KernelSU 独立加载。
@@ -88,3 +88,7 @@ BUSYBOX=/path/to/KernelSU/userspace/ksud/bin/x86_64/busybox python3 scripts/ci.p
 - Hybrid Mount `b48729c3555734fac48e9898429505e19f277c7d` 的 `module/metainstall.sh` 与分区规划实现。
 - SUSFS 用户空间模块 `c6a1c065efff9eaead049acf529a10bc93d34e75` 的特性检测与卸载登记。
 - [SUSFS 通用工具](https://github.com/sidex15/susfs4ksu-binaries/tree/universal-binary) `041f69d7fe23a7bd928f9bd90eb3535774d00456` 的 `show enabled_features`、`add_sus_mount`、`add_try_umount` 接口。
+
+### ksu.3 修复
+
+修复内核启用 `SUS_MOUNT` 但用户空间工具已移除 `add_sus_mount` 时，全量覆盖被回滚的问题。兼容依据是 SUSFS **`gki-android14-6.1`** 分支提交 `273ae364c5b7c92ceb15634c9f075b6fc0501048`（v2.3.0）的 `clone_mnt()`、`susfs_is_current_ksu_domain()` 与 Kconfig；不是默认 master 的旧接口。启动日志会打印内核版本、挂载处理模式和卸载后端。

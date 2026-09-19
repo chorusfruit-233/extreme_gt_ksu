@@ -127,7 +127,7 @@ class SusfsInstallTest(InstallFixture):
         self.helper('CONFIG_KSU_SUSFS_SUS_MOUNT\nCONFIG_KSU_SUSFS_TRY_UMOUNT')
 
     def helper(self, features):
-        self.write('data/adb/ksu/bin/ksu_susfs', '#!/busybox ash\nprintf "%s\\n" "' + features + '"\n')
+        self.write('data/adb/ksu/bin/ksu_susfs', '#!/busybox ash\n[ "$*" != "show version" ] || { echo v1.5.9; exit 0; }\n[ "$1" != --help ] || { echo "add_sus_mount add_try_umount"; exit 0; }\nprintf "%s\\n" "' + features + '"\n')
         (self.root / 'data/adb/ksu/bin/ksu_susfs').chmod(0o755)
 
     def test_install_without_metamodule(self):

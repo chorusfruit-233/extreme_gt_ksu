@@ -30,6 +30,12 @@ rollback() {
 trap rollback EXIT
 trap 'exit 1' HUP INT TERM
 susfs_check || exit 1
+if [ "$SUSFS_MOUNT" = auto ]; then
+  if [ "${KSU_LATE_LOAD:-0}" = 1 ] || [ "$(getprop sys.boot_completed)" = 1 ]; then
+    echo '! SUSFS 自动标记需要正常启动阶段，请重启；不支持启动完成后补挂载。'
+    exit 1
+  fi
+fi
 [ -s "$MODDIR/overlay-files.txt" ] || { echo '! 缺少覆盖清单'; exit 1; }
 # Validate the whole manifest before making the first mount.
 tab=$(printf '\t')

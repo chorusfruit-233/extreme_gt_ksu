@@ -59,10 +59,8 @@ def main():
         raise SystemExit('Build is not reproducible')
     for variant in VARIANTS:
         expected = module_files(variant)
-        archives = list((ROOT / 'dist').glob(f'*-{variant}.zip'))
-        if len(archives) != 1:
-            raise SystemExit(f'Expected exactly one artifact for {variant}')
-        archive = archives[0]
+        props = dict(line.split('=', 1) for line in expected['module.prop'].decode().splitlines() if '=' in line)
+        archive = ROOT / 'dist' / ('extreme_gt-' + props['version'] + '.zip')
         with zipfile.ZipFile(archive) as z:
             if z.testzip() or {name: z.read(name) for name in z.namelist()} != expected:
                 raise SystemExit('ZIP integrity or source manifest mismatch')

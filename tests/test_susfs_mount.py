@@ -31,6 +31,14 @@ class SusfsMountTest(unittest.TestCase):
         self.write('system/etc/b space.conf', 'original b\n')
         self.write('work/module/overlay-files.txt', 'payload/etc/a.conf\t/system/etc/a.conf\npayload/etc/b space.conf\t/system/etc/b space.conf\n')
         self.write('data/adb/ksu/bin/ksu_susfs', '''#!/busybox ash
+if [ "$*" = 'show version' ]; then
+  if [ -f /work/v2 ]; then echo v2.3.0; else echo v1.5.9; fi
+  exit 0
+fi
+if [ "$1" = --help ]; then
+  [ -f /work/v2 ] || echo 'add_sus_mount add_try_umount'
+  exit 0
+fi
 if [ "$1" = show ]; then
   [ ! -f /work/no_features ] || exit 1
   echo CONFIG_KSU_SUSFS_SUS_MOUNT
@@ -56,7 +64,10 @@ printf '%s\n' "$*" >> /work/calls
             p.chmod(0o755)
 
     def run_mount(self, repeat=False):
+        self.write('work/getprop', '#!/busybox ash\necho 0\n', executable=True)
         self.write('work/runner.sh', '''export KSU=true
+export PATH=/work:$PATH
+[ ! -f /work/late ] || export KSU_LATE_LOAD=1
 /busybox ash /work/module/post-mount.sh
 code=$?
 cat /system/etc/a.conf > /work/after_a
@@ -112,3 +123,41 @@ cat '/system/etc/b space.conf' > /work/after_b
         self.assertNotEqual(result.returncode, 0, log)
         self.assertEqual((self.root / 'work/after_a').read_text(), 'original a\n')
         self.assertFalse((self.root / 'work/calls').exists())
+
+    def test_v2_without_removed_commands_uses_kernel_auto_and_ksud(self):
+        self.write('work/v2', '')
+        self.write('work/modern', '')
+        result, log = self.run_mount()
+        self.assertEqual(result.returncode, 0, result.stderr + log)
+        calls = (self.root / 'work/calls').read_text()
+        self.assertNotIn('add_sus_mount', calls)
+        self.assertNotIn('add_try_umount', calls)
+        self.assertIn('kernel umount add /system/etc/a.conf --flags 2', calls)
+        self.assertIn('mount=auto', log)
+        self.assertEqual((self.root / 'work/after_a').read_text(), 'patched a\n')
+
+    def test_old_helper_missing_manual_command_fails_before_mount(self):
+        helper = self.root / 'data/adb/ksu/bin/ksu_susfs'
+        helper.write_text(helper.read_text().replace("echo 'add_sus_mount add_try_umount'", "echo 'add_sus_path'"))
+        result, log = self.run_mount()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('无 add_sus_mount', log)
+        self.assertFalse((self.root / 'work/calls').exists())
+
+    def test_v2_late_load_rejected_before_mount(self):
+        self.write('work/v2', '')
+        self.write('work/modern', '')
+        self.write('work/late', '')
+        result, log = self.run_mount()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('需要正常启动阶段', log)
+        self.assertFalse((self.root / 'work/calls').exists())
+
+    def test_v2_universal_helper_does_not_force_removed_command(self):
+        self.write('work/v2', '')
+        self.write('work/modern', '')
+        helper = self.root / 'data/adb/ksu/bin/ksu_susfs'
+        helper.write_text(helper.read_text().replace("[ -f /work/v2 ] || echo", "echo"))
+        result, log = self.run_mount()
+        self.assertEqual(result.returncode, 0, result.stderr + log)
+        self.assertNotIn('add_sus_mount', (self.root / 'work/calls').read_text())

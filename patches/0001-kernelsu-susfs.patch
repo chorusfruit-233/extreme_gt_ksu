@@ -1534,8 +1534,8 @@
 -updateJson=https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt.json
 +id=extreme_gt_susfs
 +name=Extreme GT · KernelSU SUSFS
-+version=4.2.1-ksu.2-susfs
-+versionCode=4212
++version=4.2.1-ksu.3-susfs
++versionCode=4213
 +author=嘟嘟ski & SCENE; KernelSU adaptation
 +description=OPPO/Realme/OnePlus 锁帧与温控配置适配；SUSFS 协同自行挂载，skip_mount 跳过元模块。
 --- /dev/null
@@ -1835,7 +1835,7 @@
 +true
 --- /dev/null
 +++ b/post-mount.sh
-@@ -0,0 +1,56 @@
+@@ -0,0 +1,62 @@
 +#!/system/bin/sh
 +# After any metamodule's mounts, before zygote; skip_mount does not skip scripts.
 +MODDIR=${0%/*}
@@ -1868,6 +1868,12 @@
 +trap rollback EXIT
 +trap 'exit 1' HUP INT TERM
 +susfs_check || exit 1
++if [ "$SUSFS_MOUNT" = auto ]; then
++  if [ "${KSU_LATE_LOAD:-0}" = 1 ] || [ "$(getprop sys.boot_completed)" = 1 ]; then
++    echo '! SUSFS 自动标记需要正常启动阶段，请重启；不支持启动完成后补挂载。'
++    exit 1
++  fi
++fi
 +[ -s "$MODDIR/overlay-files.txt" ] || { echo '! 缺少覆盖清单'; exit 1; }
 +# Validate the whole manifest before making the first mount.
 +tab=$(printf '\t')
@@ -1946,9 +1952,12 @@
 +SUSFS variant: all file mounts are managed by post-mount.sh.
 --- /dev/null
 +++ b/susfs-common.sh
-@@ -0,0 +1,26 @@
+@@ -0,0 +1,47 @@
 +#!/system/bin/sh
 +# Do not change SUSFS global configuration or download a replacement helper.
++susfs_has_command() {
++  printf '%s\n' "$susfs_help" | grep -Eq "(^|[[:space:]])$1([[:space:]]|$)"
++}
 +susfs_check() {
 +  SUSFS_BIN=/data/adb/ksu/bin/ksu_susfs
 +  KSUD=/data/adb/ksud
@@ -1957,16 +1966,34 @@
 +  printf '%s\n' "$susfs_features" | grep -qx 'CONFIG_KSU_SUSFS_SUS_MOUNT' || {
 +    echo '! 内核未提供 CONFIG_KSU_SUSFS_SUS_MOUNT'; return 1;
 +  }
-+  if printf '%s\n' "$susfs_features" | grep -qx 'CONFIG_KSU_SUSFS_TRY_UMOUNT'; then
++  susfs_version=$("$SUSFS_BIN" show version) || return 1
++  susfs_help=$("$SUSFS_BIN" --help 2>&1) || :
++  case "$susfs_version" in
++    v2.*|2.*)
++      # GKI SUSFS 2.x assigns SUS mount IDs in the KSU-domain mount/clone hooks.
++      # Some universal helpers still advertise the removed manual command.
++      SUSFS_MOUNT=auto
++      ;;
++    *)
++      susfs_has_command add_sus_mount || {
++        echo "! SUSFS $susfs_version 无可验证的挂载协同接口（无 add_sus_mount）"; return 1;
++      }
++      SUSFS_MOUNT=manual
++      ;;
++  esac
++  if susfs_has_command add_try_umount && printf '%s\n' "$susfs_features" | grep -qx 'CONFIG_KSU_SUSFS_TRY_UMOUNT'; then
 +    SUSFS_UMOUNT=susfs
 +  elif [ -x "$KSUD" ] && "$KSUD" kernel umount add --help >/dev/null 2>&1; then
 +    SUSFS_UMOUNT=ksud
 +  else
 +    echo '! 需要 SUSFS TRY_UMOUNT 或支持 kernel umount add 的 ksud'; return 1
 +  fi
++  echo "SUSFS $susfs_version: mount=$SUSFS_MOUNT, umount=$SUSFS_UMOUNT"
 +}
 +susfs_register() {
-+  "$SUSFS_BIN" add_sus_mount "$1" || return 1
++  if [ "$SUSFS_MOUNT" = manual ]; then
++    "$SUSFS_BIN" add_sus_mount "$1" || return 1
++  fi
 +  if [ "$SUSFS_UMOUNT" = susfs ]; then
 +    "$SUSFS_BIN" add_try_umount "$1" 1
 +  else
