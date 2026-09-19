@@ -40,11 +40,21 @@
 -#MAGISK
 --- /dev/null
 +++ b/action.sh
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,33 @@
 +#!/system/bin/sh
 +MODDIR=${0%/*}
-+printf '%s\n' 'Extreme GT: 覆盖文件比对（只读，不执行挂载）'
-+[ -f "$MODDIR/overlay-files.txt" ] || exit 1
++printf '%s\n' 'Extreme GT · susfs' '挂载方式：SUSFS 协同自行挂载。' '执行按钮：查看启动挂载结果，不在启动后补挂载。'
++if [ -f "$MODDIR/skip_mount" ]; then
++  printf '%s\n' '元模块挂载：已跳过。'
++else
++  printf '%s\n' '异常：缺少 skip_mount，请重新安装 SUSFS 版。'
++fi
++if [ -f /dev/extreme_gt_susfs.lock/complete ]; then
++  printf '%s\n' '本次启动：自行挂载流程已完成。'
++else
++  printf '%s\n' '本次启动：未发现完成标记；可能未执行或已失败回滚。'
++fi
++[ -s "$MODDIR/overlay-files.txt" ] || { printf '%s\n' '未找到覆盖清单，请检查安装是否完成。'; exit 1; }
 +ok=0
 +failed=0
 +tab=$(printf '\t')
@@ -58,13 +68,12 @@
 +  fi
 +done < "$MODDIR/overlay-files.txt"
 +printf '一致：%s，不一致：%s\n' "$ok" "$failed"
-+case "$(cat "$MODDIR/variant")" in
-+  susfs)
-+    printf '%s\n' '文件一致不等于 SUSFS 协同已确认；最近挂载日志：'
-+    tail -n 60 /data/adb/extreme_gt_susfs/mount.log 2>/dev/null
-+    ;;
-+  *) printf '%s\n' '文件一致不等于挂载来源已确认；来源请在 Hybrid Mount 中查看。' ;;
-+esac
++printf '%s\n' '内容比对不能独立证明 SUSFS 隐藏效果。' '最近一次启动挂载日志：'
++if [ -r /data/adb/extreme_gt_susfs/mount.log ]; then
++  tail -n 60 /data/adb/extreme_gt_susfs/mount.log
++else
++  printf '%s\n' '暂无日志。安装或启用后请重启。'
++fi
 --- /dev/null
 +++ b/assets/d1x00/power_app_cfg.xml
 @@ -0,0 +1,6 @@
@@ -1534,8 +1543,8 @@
 -updateJson=https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt.json
 +id=extreme_gt_susfs
 +name=Extreme GT · KernelSU SUSFS
-+version=4.2.1-ksu.3-susfs
-+versionCode=4213
++version=4.2.1-ksu.4-susfs
++versionCode=4214
 +author=嘟嘟ski & SCENE; KernelSU adaptation
 +description=OPPO/Realme/OnePlus 锁帧与温控配置适配；SUSFS 协同自行挂载，skip_mount 跳过元模块。
 --- /dev/null
@@ -1835,7 +1844,7 @@
 +true
 --- /dev/null
 +++ b/post-mount.sh
-@@ -0,0 +1,62 @@
+@@ -0,0 +1,63 @@
 +#!/system/bin/sh
 +# After any metamodule's mounts, before zygote; skip_mount does not skip scripts.
 +MODDIR=${0%/*}
@@ -1845,12 +1854,13 @@
 +STATE=/data/adb/extreme_gt_susfs
 +mkdir -p "$STATE" || exit 1
 +chmod 0700 "$STATE"
-+exec >> "$STATE/mount.log" 2>&1
 +. "$MODDIR/susfs-common.sh"
 +# A boot-scoped lock prevents a second post-mount event from stacking mounts.
 +LOCK=/dev/extreme_gt_susfs.lock
 +mkdir "$LOCK" 2>/dev/null || exit 0
 +chmod 0700 "$LOCK"
++# Replace the previous boot log only after acquiring the boot-scoped lock.
++exec > "$STATE/mount.log" 2>&1
 +ledger="$LOCK/mounted"
 +: > "$ledger"
 +complete=false

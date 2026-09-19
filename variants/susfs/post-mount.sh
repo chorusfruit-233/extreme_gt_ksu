@@ -7,12 +7,13 @@ MODDIR=${0%/*}
 STATE=/data/adb/extreme_gt_susfs
 mkdir -p "$STATE" || exit 1
 chmod 0700 "$STATE"
-exec >> "$STATE/mount.log" 2>&1
 . "$MODDIR/susfs-common.sh"
 # A boot-scoped lock prevents a second post-mount event from stacking mounts.
 LOCK=/dev/extreme_gt_susfs.lock
 mkdir "$LOCK" 2>/dev/null || exit 0
 chmod 0700 "$LOCK"
+# Replace the previous boot log only after acquiring the boot-scoped lock.
+exec > "$STATE/mount.log" 2>&1
 ledger="$LOCK/mounted"
 : > "$ledger"
 complete=false

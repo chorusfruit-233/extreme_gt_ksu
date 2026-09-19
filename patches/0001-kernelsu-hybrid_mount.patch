@@ -40,11 +40,11 @@
 -#MAGISK
 --- /dev/null
 +++ b/action.sh
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,18 @@
 +#!/system/bin/sh
 +MODDIR=${0%/*}
-+printf '%s\n' 'Extreme GT: 覆盖文件比对（只读，不执行挂载）'
-+[ -f "$MODDIR/overlay-files.txt" ] || exit 1
++printf '%s\n' 'Extreme GT · hybrid_mount' '挂载方式：由 Hybrid Mount 元模块接管。' '执行按钮：检查当前可见文件，不触发挂载。'
++[ -s "$MODDIR/overlay-files.txt" ] || { printf '%s\n' '未找到覆盖清单，请检查安装是否完成。'; exit 1; }
 +ok=0
 +failed=0
 +tab=$(printf '\t')
@@ -58,13 +58,7 @@
 +  fi
 +done < "$MODDIR/overlay-files.txt"
 +printf '一致：%s，不一致：%s\n' "$ok" "$failed"
-+case "$(cat "$MODDIR/variant")" in
-+  susfs)
-+    printf '%s\n' '文件一致不等于 SUSFS 协同已确认；最近挂载日志：'
-+    tail -n 60 /data/adb/extreme_gt_susfs/mount.log 2>/dev/null
-+    ;;
-+  *) printf '%s\n' '文件一致不等于挂载来源已确认；来源请在 Hybrid Mount 中查看。' ;;
-+esac
++printf '%s\n' '内容一致仅说明当前可见文件相同，实际挂载来源请在 Hybrid Mount 中查看。'
 --- /dev/null
 +++ b/assets/d1x00/power_app_cfg.xml
 @@ -0,0 +1,6 @@
@@ -1534,8 +1528,8 @@
 -updateJson=https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt.json
 +id=extreme_gt_hybrid_mount
 +name=Extreme GT · KernelSU Hybrid Mount
-+version=4.2.1-ksu.3-hybrid_mount
-+versionCode=4213
++version=4.2.1-ksu.4-hybrid_mount
++versionCode=4214
 +author=嘟嘟ski & SCENE; KernelSU adaptation
 +description=OPPO/Realme/OnePlus 锁帧与温控配置适配；依赖 meta-hybrid_mount，所有覆盖由元模块挂载。
 --- /dev/null

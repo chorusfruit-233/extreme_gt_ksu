@@ -7,7 +7,7 @@
 | `hybrid_mount` | `extreme_gt_hybrid_mount` | 所有覆盖交给 meta-hybrid_mount，模块没有挂载入口 | KernelSU + 已启用的 Hybrid Mount |
 | `susfs` | `extreme_gt_susfs` | `skip_mount` 明确跳过元模块，模块自行逐文件 bind 并协同 SUSFS | KernelSU + SUSFS 内核 + 已安装的 `ksu_susfs` |
 
-对应产物为 `extreme_gt-4.2.1-ksu.3-hybrid_mount.zip` 和 `extreme_gt-4.2.1-ksu.3-susfs.zip`。两者修改相同配置，**只能启用其中一个**。
+对应产物为 `extreme_gt-4.2.1-ksu.4-hybrid_mount.zip` 和 `extreme_gt-4.2.1-ksu.4-susfs.zip`。两者修改相同配置，**只能启用其中一个**。
 
 ## 安装与切换
 
@@ -92,3 +92,7 @@ BUSYBOX=/path/to/KernelSU/userspace/ksud/bin/x86_64/busybox python3 scripts/ci.p
 ### ksu.3 修复
 
 修复内核启用 `SUS_MOUNT` 但用户空间工具已移除 `add_sus_mount` 时，全量覆盖被回滚的问题。兼容依据是 SUSFS **`gki-android14-6.1`** 分支提交 `273ae364c5b7c92ceb15634c9f075b6fc0501048`（v2.3.0）的 `clone_mnt()`、`susfs_is_current_ksu_domain()` 与 Kconfig；不是默认 master 的旧接口。启动日志会打印内核版本、挂载处理模式和卸载后端。
+
+### ksu.4 执行按钮
+
+两个版本使用各自独立的 `action.sh`。Hybrid Mount 版只展示元模块相关的文件比对；SUSFS 版展示 `skip_mount`、本次启动完成标记、文件比对和自行挂载日志。按钮均只用于诊断，不在启动完成后补挂载。SUSFS 日志在每次取得启动挂载锁后重新写入，避免旧版错误与本次结果混在一起；同一启动过程的重复调用不清空日志。
