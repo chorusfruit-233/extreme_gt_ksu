@@ -15,4 +15,10 @@ while IFS="$tab" read -r relative target; do
   fi
 done < "$MODDIR/overlay-files.txt"
 printf '一致：%s，不一致：%s\n' "$ok" "$failed"
-printf '%s\n' '文件一致不等于挂载来源已确认；来源请在 Hybrid Mount 中查看。'
+case "$(cat "$MODDIR/variant")" in
+  susfs)
+    printf '%s\n' '文件一致不等于 SUSFS 协同已确认；最近挂载日志：'
+    tail -n 60 /data/adb/extreme_gt_susfs/mount.log 2>/dev/null
+    ;;
+  *) printf '%s\n' '文件一致不等于挂载来源已确认；来源请在 Hybrid Mount 中查看。' ;;
+esac

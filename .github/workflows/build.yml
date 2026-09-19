@@ -1,4 +1,4 @@
-name: Build KernelSU module
+name: Build KernelSU variants
 
 on:
   push:
@@ -38,13 +38,23 @@ jobs:
           echo "BUSYBOX=$RUNNER_TEMP/busybox" >> "$GITHUB_ENV"
       - name: Test and build
         run: python3 scripts/ci.py
-      - name: Upload installable module and checksums
+      - name: Upload hybrid_mount module
         uses: actions/upload-artifact@v4
         with:
-          name: extreme-gt-ksu-${{ github.run_number }}
+          name: extreme-gt-hybrid_mount-${{ github.run_number }}
           path: |
-            dist/*.zip
-            dist/*.sha256
-            patches/0001-kernelsu-hybrid-mount.patch
+            dist/*-hybrid_mount.zip
+            dist/*-hybrid_mount.zip.sha256
+            patches/0001-kernelsu-hybrid_mount.patch
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload susfs module
+        uses: actions/upload-artifact@v4
+        with:
+          name: extreme-gt-susfs-${{ github.run_number }}
+          path: |
+            dist/*-susfs.zip
+            dist/*-susfs.zip.sha256
+            patches/0001-kernelsu-susfs.patch
           if-no-files-found: error
           retention-days: 30

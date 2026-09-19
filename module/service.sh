@@ -1,6 +1,9 @@
 #!/system/bin/sh
 MODDIR=${0%/*}
 [ "$KSU" = true ] || exit 0
+if [ "$(cat "$MODDIR/variant")" = susfs ]; then
+  [ -f /dev/extreme_gt_susfs.lock/complete ] || exit 0
+fi
 # Each write is optional: kernel interfaces differ between devices.
 write_node() {
   [ -f "$2" ] || return 0

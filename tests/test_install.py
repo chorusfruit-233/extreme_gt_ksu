@@ -2,7 +2,7 @@
 Set BUSYBOX to KernelSU's x86_64 BusyBox to test ash standalone mode.
 No host /sys, /proc, /data or Android partitions are writable by the module.
 """
-import hashlib
+import sys
 import json
 import os
 from pathlib import Path
@@ -13,16 +13,22 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 BUSYBOX = os.environ.get('BUSYBOX')
+sys.path.insert(0, str(ROOT / 'scripts'))
+from build import module_files
 
 @unittest.skipUnless(shutil.which('bwrap') and BUSYBOX, 'requires bwrap and BUSYBOX')
-class InstallTest(unittest.TestCase):
+class InstallFixture(unittest.TestCase):
+    variant = "hybrid_mount"
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         for part in ['system', 'vendor', 'odm', 'product', 'my_product', 'my_stock', 'my_heytap', 'data', 'work', 'proc', 'sys']:
             (self.root / part).mkdir()
-        shutil.copytree(ROOT / 'module', self.root / 'work/module')
+        for name, content in module_files(self.variant).items():
+            output = self.root / 'work/module' / name
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(content)
         (self.root / 'work/tmp').mkdir()
         for part in ['vendor', 'odm', 'product', 'my_product', 'my_stock', 'my_heytap']:
             (self.root / 'system' / part).symlink_to('/' + part)
@@ -63,6 +69,7 @@ getprop() {{ printf '%s\\n' {soc}; }}
         cmd += ['--setenv', 'ASH_STANDALONE', '1', '/busybox', 'ash', '/work/runner.sh']
         return subprocess.run(cmd, capture_output=True, text=True)
 
+class InstallTest(InstallFixture):
     def test_generic_install(self):
         result = self.run_install()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -111,6 +118,67 @@ getprop() {{ printf '%s\\n' {soc}; }}
         result = self.run_install(meta='meta-overlayfs')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('meta-hybrid_mount', result.stdout)
+
+class SusfsInstallTest(InstallFixture):
+    variant = 'susfs'
+
+    def setUp(self):
+        super().setUp()
+        self.helper('CONFIG_KSU_SUSFS_SUS_MOUNT\nCONFIG_KSU_SUSFS_TRY_UMOUNT')
+
+    def helper(self, features):
+        self.write('data/adb/ksu/bin/ksu_susfs', '#!/busybox ash\nprintf "%s\\n" "' + features + '"\n')
+        (self.root / 'data/adb/ksu/bin/ksu_susfs').chmod(0o755)
+
+    def test_install_without_metamodule(self):
+        result = self.run_install(meta='')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        m = self.root / 'work/module'
+        self.assertTrue((m / 'skip_mount').is_file())
+        self.assertFalse((m / 'system').exists())
+        self.assertFalse((m / 'vendor').exists())
+        self.assertIn('<isOpen>0</isOpen>', (m / 'payload/vendor/etc/sys_thermal_config.xml').read_text())
+        self.assertTrue((m / 'payload/my_product/etc/with space/sys_thermal_config.xml').is_file())
+        lines = (m / 'overlay-files.txt').read_text().splitlines()
+        self.assertEqual(len(lines), len(set(lines)))
+        self.assertTrue(all(line.startswith('payload/') for line in lines))
+
+    def test_install_with_metamodule_still_skips(self):
+        result = self.run_install()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertFalse((self.root / 'work/module/system').exists())
+        self.assertTrue((self.root / 'work/module/skip_mount').is_file())
+
+    def test_missing_helper_rejected(self):
+        (self.root / 'data/adb/ksu/bin/ksu_susfs').unlink()
+        result = self.run_install(meta='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('缺少 /data/adb/ksu/bin/ksu_susfs', result.stdout)
+
+    def test_missing_feature_rejected(self):
+        self.helper('CONFIG_KSU_SUSFS_SUS_PATH')
+        result = self.run_install(meta='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('CONFIG_KSU_SUSFS_SUS_MOUNT', result.stdout)
+
+    def test_missing_destination_rejected(self):
+        result = self.run_install(soc='mt6893', meta='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('目标存在', result.stdout)
+
+    def test_conflicting_variant_rejected(self):
+        self.write('data/adb/modules/extreme_gt_hybrid_mount/module.prop', 'id=extreme_gt_hybrid_mount\n')
+        result = self.run_install(meta='')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('不能同时启用', result.stdout)
+
+    def test_modern_ksud_fallback(self):
+        self.helper('CONFIG_KSU_SUSFS_SUS_MOUNT')
+        self.write('data/adb/ksud', '#!/busybox ash\n[ "$*" = "kernel umount add --help" ]\n')
+        (self.root / 'data/adb/ksud').chmod(0o755)
+        result = self.run_install(meta='')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,6 +1,6 @@
-id=extreme_gt
+id=extreme_gt_hybrid_mount
 name=Extreme GT · KernelSU Hybrid Mount
-version=4.2.1-ksu.1
-versionCode=4211
+version=4.2.1-ksu.2-hybrid_mount
+versionCode=4212
 author=嘟嘟ski & SCENE; KernelSU adaptation
 description=OPPO/Realme/OnePlus 锁帧与温控配置适配；依赖 meta-hybrid_mount，所有覆盖由元模块挂载。

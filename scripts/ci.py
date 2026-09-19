@@ -10,6 +10,8 @@ import tempfile
 import unittest
 import zipfile
 
+from build import VARIANTS, module_files
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -29,7 +31,7 @@ def main():
     for command in ('bwrap', 'patch'):
         if not shutil.which(command):
             raise SystemExit(f'Missing required test dependency: {command}')
-    for script in sorted((ROOT / 'module').rglob('*.sh')):
+    for script in sorted([*(ROOT / 'module').rglob('*.sh'), *(ROOT / 'variants').rglob('*.sh')]):
         run(busybox, 'ash', '-n', str(script))
     suite = unittest.defaultTestLoader.discover(str(ROOT / 'tests'))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
@@ -37,25 +39,30 @@ def main():
         raise SystemExit('Tests failed, skipped, or no tests were discovered')
 
     run(sys.executable, 'scripts/build.py')
-    expected = files(ROOT / 'module')
-    # The patch preserves upstream CRLF and missing final newlines.
-    with tempfile.TemporaryDirectory() as directory:
-        destination = Path(directory)
-        import json
-        lock = json.loads((ROOT / 'upstream/lock.json').read_text())
-        archive = ROOT / 'upstream' / f"extreme_gt_{lock['version']}.zip"
-        with zipfile.ZipFile(archive) as z:
-            z.extractall(destination)
-        with (ROOT / 'patches/0001-kernelsu-hybrid-mount.patch').open('rb') as patch:
-            run('patch', '--binary', '--batch', '-p1', cwd=destination, stdin=patch)
-        if files(destination) != expected:
-            raise SystemExit('Replayed patch differs from module source')
+    for variant in VARIANTS:
+        expected = module_files(variant)
+        with tempfile.TemporaryDirectory() as directory:
+            destination = Path(directory)
+            import json
+            lock = json.loads((ROOT / 'upstream/lock.json').read_text())
+            archive = ROOT / 'upstream' / f"extreme_gt_{lock['version']}.zip"
+            with zipfile.ZipFile(archive) as z:
+                z.extractall(destination)
+            with (ROOT / f'patches/0001-kernelsu-{variant}.patch').open('rb') as patch:
+                run('patch', '--binary', '--batch', '-p1', cwd=destination, stdin=patch)
+            if files(destination) != expected:
+                raise SystemExit(f'Replayed {variant} patch differs from source')
 
     before = files(ROOT / 'dist')
     run(sys.executable, 'scripts/build.py')
     if files(ROOT / 'dist') != before:
         raise SystemExit('Build is not reproducible')
-    for archive in (ROOT / 'dist').glob('*.zip'):
+    for variant in VARIANTS:
+        expected = module_files(variant)
+        archives = list((ROOT / 'dist').glob(f'*-{variant}.zip'))
+        if len(archives) != 1:
+            raise SystemExit(f'Expected exactly one artifact for {variant}')
+        archive = archives[0]
         with zipfile.ZipFile(archive) as z:
             if z.testzip() or {name: z.read(name) for name in z.namelist()} != expected:
                 raise SystemExit('ZIP integrity or source manifest mismatch')

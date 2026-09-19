@@ -1,0 +1,6 @@
+id=extreme_gt_susfs
+name=Extreme GT · KernelSU SUSFS
+version=4.2.1-ksu.2-susfs
+versionCode=4212
+author=嘟嘟ski & SCENE; KernelSU adaptation
+description=OPPO/Realme/OnePlus 锁帧与温控配置适配；SUSFS 协同自行挂载，skip_mount 跳过元模块。
