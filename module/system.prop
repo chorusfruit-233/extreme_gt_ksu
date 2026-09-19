@@ -1,0 +1,3 @@
+persist.sys.horae.enable=0
+persist.sys.oplus.wifi.sla.game_high_temperature=50
+persist.sys.environment.temp=25

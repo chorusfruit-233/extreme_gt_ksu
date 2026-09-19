@@ -1,0 +1,1847 @@
+--- a/META-INF/com/google/android/update-binary
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#!/sbin/sh
+-
+-#################
+-# Initialization
+-#################
+-
+-umask 022
+-
+-# echo before loading util_functions
+-ui_print() { echo "$1"; }
+-
+-require_new_magisk() {
+-  ui_print "*******************************"
+-  ui_print " Please install Magisk v20.4+! "
+-  ui_print "*******************************"
+-  exit 1
+-}
+-
+-#########################
+-# Load util_functions.sh
+-#########################
+-
+-OUTFD=$2
+-ZIPFILE=$3
+-
+-mount /data 2>/dev/null
+-
+-[ -f /data/adb/magisk/util_functions.sh ] || require_new_magisk
+-. /data/adb/magisk/util_functions.sh
+-[ $MAGISK_VER_CODE -lt 20400 ] && require_new_magisk
+-
+-install_module
+-exit 0
+--- a/META-INF/com/google/android/updater-script
++++ /dev/null
+@@ -1 +0,0 @@
+-#MAGISK
+--- /dev/null
++++ b/action.sh
+@@ -0,0 +1,18 @@
++#!/system/bin/sh
++MODDIR=${0%/*}
++printf '%s\n' 'Extreme GT: 覆盖文件比对（只读，不执行挂载）'
++[ -f "$MODDIR/overlay-files.txt" ] || exit 1
++ok=0
++failed=0
++tab=$(printf '\t')
++while IFS="$tab" read -r relative target; do
++  if cmp -s "$MODDIR/$relative" "$target"; then
++    printf '一致 %s\n' "$target"
++    ok=$((ok + 1))
++  else
++    printf '不一致/不可读 %s\n' "$target"
++    failed=$((failed + 1))
++  fi
++done < "$MODDIR/overlay-files.txt"
++printf '一致：%s，不一致：%s\n' "$ok" "$failed"
++printf '%s\n' '文件一致不等于挂载来源已确认；来源请在 Hybrid Mount 中查看。'
+--- /dev/null
++++ b/assets/d1x00/power_app_cfg.xml
+@@ -0,0 +1,6 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<!-- The source code provided herein is for optimizing power and performance of gaming software
++and certain applications (e.g. Sina Weibo, QQ) only and should not be used and/or included in
++any software that is unrelated to enhancing end-user experience. -->
++<WHITELIST>
++</WHITELIST>
+\ No newline at end of file
+--- /dev/null
++++ b/assets/d1x00/powercontable.xml
+@@ -0,0 +1,2 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<CONTABLE></CONTABLE>
+--- /dev/null
++++ b/assets/d1x00/powerscntbl.xml
+@@ -0,0 +1,3 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<SCNTABLE>
++</SCNTABLE>
+--- /dev/null
++++ b/assets/d1x00/service.sh
+@@ -0,0 +1,38 @@
++#!/system/bin/sh
++# Sourced only after service.sh has read ro.board.platform.
++for pair in '0 4' '4 3' '7 1'; do
++  cpu=${pair% *}
++  count=${pair#* }
++  base=/sys/devices/system/cpu/cpu${cpu}/core_ctl
++  lock_value "$count" "$base/max_cpus"
++  lock_value "$count" "$base/min_cpus"
++  lock_value 0 "$base/enable"
++done
++for i in 3 4 5 6; do
++  write_node "$i 0 0" /proc/gpufreq/gpufreq_limit_table
++done
++for policy in hard_userlimit_cpu_freq hard_userlimit_freq_limit_by_others; do
++  node=/proc/ppm/policy/$policy
++  write_node '0 -1' "$node"
++  write_node '1 -1' "$node"
++  [ ! -f "$node" ] || chmod 0444 "$node" 2>/dev/null
++done
++write_node 1 /proc/ppm/enabled
++if [ -f /proc/ppm/policy_status ]; then
++  # Parse the complete policy index; upstream truncated multi-digit indices.
++  while IFS= read -r row; do
++    index=$(printf '%s\n' "$row" | sed -n 's/^[[:space:]]*\[\([0-9][0-9]*\)\].*/\1/p')
++    [ -n "$index" ] || continue
++    value=0
++    case "$row" in *PPM_POLICY_HARD_USER_LIMIT*) value=1 ;; esac
++    write_node "$index $value" /proc/ppm/policy_status
++  done < /proc/ppm/policy_status
++fi
++lock_value 100 /sys/kernel/fpsgo/fbt/thrm_temp_th
++lock_value -1 /sys/kernel/fpsgo/fbt/thrm_limit_cpu
++lock_value -1 /sys/kernel/fpsgo/fbt/thrm_sub_cpu
++for i in 0 1 2 3 4 5 6 7; do
++  write_node "$i" /sys/devices/system/cpu/sched/set_sched_deisolation
++done
++node=/sys/devices/system/cpu/sched/set_sched_isolation
++[ ! -f "$node" ] || chmod 000 "$node" 2>/dev/null
+--- /dev/null
++++ b/assets/d1x00/tp/ht120.mtc
+@@ -0,0 +1,74 @@
++SfebGmowgWang
++MU8;=8
++SfebIsj
++SfebGIe[U
++/qtrg4s slopnhv4s s"sdrx1x$zz!t
++
++/qtrg4s slopnhv4s s"sqolg2y%  su
++
++/qtrg4s slopnhv4s s"sccwxjx%5!yttvx
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo23
++
++/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
++
++/qtrg4s slopnhv4s s"sxow1x$zz!t
++
++/qtrg4s slopnhv4s s"sBR0w#yy "
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo24
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo25
++
++SfebIsj
++SfebMYV
++/qtrg4jyq$es1wljxtiu/u!exxewi an
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
++/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
++/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
++/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
++1
++SfebIsj
++SfebVYV
++/qtrg4jyq$es1wljxtiu/u!ftz
++1!34;567(9 nvnxxiw"6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"545
++/qtrg4jyq$es1wljxtiu/u!sqni
++1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
++/qtrg4jyq$es1wljxtiu/u!eeyzlz'
++1!83456'8)mumwwgg !nrz/v"xxz!)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++/qtrg4jyq$es1wljxtiu/u!se
++1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
++/qtrg4jyq$es1wljxtiu/u!flfxnm 
++1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
++/qtrg4jyq$es1wljxtiu/u!zqy
++1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
++/qtrg4jyq$es1wljxtiu/u!exx
++1!334567(9 nvnxxGW5!yttvx%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!3345
++/qtrg4jyq$es1wljxtiu/u!exxtyxj
++1!354567(9 nvn1hr4s!hvvgs!t79)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++/qtrg4jyq$es1wljxtiu/u!exxvh
++1!354567(9 nvn1hr4s!hvvgs!t7:)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++SfebIsj
++SfebX_e[U
++/qtrg4s s"z0owoyyjx#
++mbaois&8(
++/qtrg4s s"z0owoyywurc
++mbaois&;(
++/qtrg4s s"z0owoyyii"tft!
++mbaois&;(
++/qtrg4s s"z0owoyywi
++mbaois&8(
++/qtrg4s s"z0owoyyjpjrhgu
++mbaois&8(
++/qtrg4s s"z0owoyy#u"
++mbaois&8(
++/qtrg4s s"z0owoyyHX
++mbaois&8(
++/qtrg4s s"z0owoyyi!!nsrd
++mbaois&8(
++/qtrg4s s"z0owoyyi!!merd
++mbaois&8(
++SfebIsj
++EPH
+--- /dev/null
++++ b/assets/d1x00/tp/thermal.conf
+@@ -0,0 +1,100 @@
++SfebGmowgWang
++MU8;=8
++SfebIsj
++SfebGIe[U
++/qtrg4s slopnhv4s s"sdrx1x$zz!t
++
++/qtrg4s slopnhv4iw"haecsxn!lg9
++EYKW$;678
++/qtrg4s slopnhv4iw"haecsxn!lg:
++mumwwFV'?=012#I]O[(>012
++/qtrg4s slopnhv4s s"sqolg2y%  su
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo23
++
++/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
++
++/qtrg4s slopnhv4s s"sxow1x$zz!t
++
++/qtrg4s slopnhv4s s"sBR0w#yy "
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo26
++
++/qtrg4s slopnhv4s s6cm/fer67
++EYKW$;678
++/qtrg4s slopnhv4giklt`nfqtlm
++EYKW$>?@
++/qtrg4s slopnhv4giklt
++EYKW$>?@
++/qtrg4s slopnhv4s s6cm/nwm  lxwo24
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo25
++
++SfebIsj
++SfebMYV
++/qtrg4jyq$es1wljxtiu/u!exxewi an
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
++/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
++/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++0!4345&88)16"4$:=7(9 323$5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++1!3345&88)16"4$7>7(9 293$5
++/qtrg4jyq$es1wljxtiu/dneghz
++0!784%9<8)162
++/qtrg4jyq$es1wljxtiu/dnpyyzf ntukqk
++0!93456'?9012#<%79(:6!:#57&8>
++/qtrg4jyq$es1wljxtiu/dnfxr
++2!334567(B0123$=6789 97345&@;901";9567(;36234%8789 353456':901"845&<89 25845
++/qtrg4jyq$es1wljxtiu/dndfhi 
++52234%7789 323456'=)2123$5&7(<012#4%7
++/qtrg4jyq$es1wljxtiu/dndfhi gucnqij
++1!76456'9901"545678)5!4345&=89
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++0!5#8%78(< 27#5%7<
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++1!5#8%;'8)0!2#4
++/qtrg4jyq$es1wljxtiu/xkimdoug!od
++1!2#8%6'@>012#9567(:012#95&989 6234%878)212#55678)11234
++/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
++0
++SfebIsj
++SfebVYV
++/qtrg4jyq$es1wljxtiu/u!ftz
++3!34;567(9 nvnxxiw"6szuuwy&?=901"3$hv!gjdbrwm kf8)77234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
++/qtrg4jyq$es1wljxtiu/u!sqni
++1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
++/qtrg4jyq$es1wljxtiu/u!se
++1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
++/qtrg4jyq$es1wljxtiu/u!flfxnm 
++1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
++/qtrg4jyq$es1wljxtiu/u!zqy
++1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
++/qtrg4jyq$es1wljxtiu/u!exx
++5!334567(9 nvnxxGW5!yttvx%?7890!2#qyq4ku-lukyyjv$w04"8<567(9 nvn1hr4kjm12#97678)0!ceghzftlmphi$:6789 1"dfhi (9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(:012
++/qtrg4jyq$es1wljxtiu/u!exxtyxj
++3!354567(9 nvn1hr4s!hvvgs!t79)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++/qtrg4jyq$es1wljxtiu/u!exxvh
++4!354567(9 nvn1hr4s!hvvgs!t7:)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'@>012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
++SfebIsj
++SfebX_e[U
++/qtrg4s s"z0owoyyjx#
++mbaois&8(
++/qtrg4s s"z0owoyywurc
++mbaois&;(
++/qtrg4s s"z0owoyywi
++mbaois&8(
++/qtrg4s s"z0owoyyjpjrhgu
++mbaois&8(
++/qtrg4s s"z0owoyy#u"
++mbaois&8(
++/qtrg4s s"z0owoyyHX
++mbaois&8(
++/qtrg4s s"z0owoyyi!!nsrd
++mbaois&8(
++/qtrg4s s"z0owoyyi!!merd
++mbaois&8(
++SfebIsj
++EPH
+--- /dev/null
++++ b/assets/d1x00/tp/thermal.off.conf
+@@ -0,0 +1,88 @@
++SfebGmowgWang
++MU8;=8
++SfebIsj
++SfebGIe[U
++/qtrg4s slopnhv4s s"sdrx1x$zz!t
++
++/qtrg4s slopnhv4iw"haecsxn!lg9
++EYKW$;678
++/qtrg4s slopnhv4iw"haecsxn!lg:
++mumwwFV'?=012#I]O[(>012
++/qtrg4s slopnhv4s s"sqolg2y%  su
++
++/qtrg4s slopnhv4s s"sccwxjx%5!yttvx
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo23
++
++/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
++
++/qtrg4s slopnhv4s s"sxow1x$zz!t
++
++/qtrg4s slopnhv4s s"sBR0w#yy "
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo24
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo25
++
++SfebIsj
++SfebMYV
++/qtrg4jyq$es1wljxtiu/u!exxewi an
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
++/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
++/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++0!4345&88)16"4$:=7(9 323$5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++1!3345&88)16"4$7>7(9 293$5
++/qtrg4jyq$es1wljxtiu/dnfxr
++2!334567(B0123$=6789 97345&@;901";9567(;36234%8789 353456':901"845&<89 25845
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++0!5#8%78(= 27#5%7<
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++1!5#8%;'8)0!2#4
++/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
++0
++SfebIsj
++SfebVYV
++/qtrg4jyq$es1wljxtiu/u!ftz
++3!34;567(9 nvnxxiw"6szuuwy&?=901"3$hv!gjdbrwm kf8)77234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
++/qtrg4jyq$es1wljxtiu/u!sqni
++1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
++/qtrg4jyq$es1wljxtiu/u!eeyzlz'
++1!83456'8)mumwwgg !nrz/v"xxz!)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++/qtrg4jyq$es1wljxtiu/u!se
++1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
++/qtrg4jyq$es1wljxtiu/u!flfxnm 
++1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
++/qtrg4jyq$es1wljxtiu/u!zqy
++1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
++/qtrg4jyq$es1wljxtiu/u!exx
++1!334567(9 nvnxxGW5!yttvx%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!3345
++/qtrg4jyq$es1wljxtiu/u!exxtyxj
++1!354567(9 nvn1hr4s!hvvgs!t79)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++/qtrg4jyq$es1wljxtiu/u!exxvh
++1!354567(9 nvn1hr4s!hvvgs!t7:)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
++SfebIsj
++SfebX_e[U
++/qtrg4s s"z0owoyyjx#
++mbaois&8(
++/qtrg4s s"z0owoyywurc
++mbaois&;(
++/qtrg4s s"z0owoyyii"tft!
++mbaois&;(
++/qtrg4s s"z0owoyywi
++mbaois&8(
++/qtrg4s s"z0owoyyjpjrhgu
++mbaois&8(
++/qtrg4s s"z0owoyy#u"
++mbaois&8(
++/qtrg4s s"z0owoyyHX
++mbaois&8(
++/qtrg4s s"z0owoyyi!!nsrd
++mbaois&8(
++/qtrg4s s"z0owoyyi!!merd
++mbaois&8(
++SfebIsj
++EPH
+--- /dev/null
++++ b/assets/d1x00/tp/thermal_policy_08
+@@ -0,0 +1,100 @@
++SfebGmowgWang
++MU8;=8
++SfebIsj
++SfebGIe[U
++/qtrg4s slopnhv4s s"sdrx1x$zz!t
++
++/qtrg4s slopnhv4iw"haecsxn!lg9
++EYKW$;678
++/qtrg4s slopnhv4iw"haecsxn!lg:
++mumwwFV'?=012#I]O[(>012
++/qtrg4s slopnhv4s s"sqolg2y%  su
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo23
++
++/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
++
++/qtrg4s slopnhv4s s"sxow1x$zz!t
++
++/qtrg4s slopnhv4s s"sBR0w#yy "
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo26
++
++/qtrg4s slopnhv4s s6cm/fer67
++EYKW$;678
++/qtrg4s slopnhv4giklt`nfqtlm
++EYKW$>?@
++/qtrg4s slopnhv4giklt
++EYKW$>?@
++/qtrg4s slopnhv4s s6cm/nwm  lxwo24
++
++/qtrg4s slopnhv4s s6cm/nwm  lxwo25
++
++SfebIsj
++SfebMYV
++/qtrg4jyq$es1wljxtiu/u!exxewi an
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
++/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
++/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
++PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++0!4345&88)16"4$:=7(9 323$5
++/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
++1!3345&88)16"4$7>7(9 293$5
++/qtrg4jyq$es1wljxtiu/dneghz
++0!784%9<8)162
++/qtrg4jyq$es1wljxtiu/dnpyyzf ntukqk
++0!93456'?9012#<%79(:6!:#57&8>
++/qtrg4jyq$es1wljxtiu/dnfxr
++2!;8456'@>012#;5678)76234%?7890!:3456':<5123$7678)242345&9890!734%;78)14734
++/qtrg4jyq$es1wljxtiu/dndfhi 
++52234%7789 323456'=)2123$5&7(<012#4%7
++/qtrg4jyq$es1wljxtiu/dndfhi gucnqij
++1!76456'9901"545678)5!4345&=89
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++0!5#8%78(< 27#5%7<
++/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
++1!5#8%;'8)0!2#4
++/qtrg4jyq$es1wljxtiu/xkimdoug!od
++1!2#8%6'@>012#9567(:012#95&989 6234%878)212#55678)11234
++/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
++0
++SfebIsj
++SfebVYV
++/qtrg4jyq$es1wljxtiu/u!ftz
++3!34;567(9 nvnxxiw"6szuuwy&<?901"3$hv!gjdbrwm kf8)57234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
++/qtrg4jyq$es1wljxtiu/u!sqni
++1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
++/qtrg4jyq$es1wljxtiu/u!se
++1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
++/qtrg4jyq$es1wljxtiu/u!flfxnm 
++1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
++/qtrg4jyq$es1wljxtiu/u!zqy
++1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
++/qtrg4jyq$es1wljxtiu/u!exx
++5!334567(9 nvnxxGW5!yttvx%?7890!2#qyq4ku-lukyyjv$w04"8<567(9 nvn1hr4kjm12#97678)0!ceghzftlmphi$:6789 1"dfhi (9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(:012
++/qtrg4jyq$es1wljxtiu/u!exxtyxj
++4!354567(9 nvn1hr4s!hvvgs!t79)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'>A012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
++/qtrg4jyq$es1wljxtiu/u!exxvh
++4!354567(9 nvn1hr4s!hvvgs!t7:)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'>A012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
++SfebIsj
++SfebX_e[U
++/qtrg4s s"z0owoyyjx#
++mbaois&8(
++/qtrg4s s"z0owoyywurc
++mbaois&;(
++/qtrg4s s"z0owoyywi
++mbaois&8(
++/qtrg4s s"z0owoyyjpjrhgu
++mbaois&8(
++/qtrg4s s"z0owoyy#u"
++mbaois&8(
++/qtrg4s s"z0owoyyHX
++mbaois&8(
++/qtrg4s s"z0owoyyi!!nsrd
++mbaois&8(
++/qtrg4s s"z0owoyyi!!merd
++mbaois&8(
++SfebIsj
++EPH
+--- a/customize.sh
++++ b/customize.sh
+@@ -1,361 +1,61 @@
++#!/system/bin/sh
++# Sourced by KernelSU's installer (BusyBox ash).
++[ "$KSU" = true ] || abort '! 请使用 KernelSU 管理器安装。'
++[ "$BOOTMODE" = true ] || abort '! 不支持 Recovery 安装。'
++case "${KSU_METAMODULE:-}" in
++  hybrid_mount|meta-hybrid_mount) ;;
++  *)
++    [ "${HYBRID_MOUNT:-}" = true ] ||
++      abort '! 请先启用 meta-hybrid_mount 并重启，再安装本模块。'
++    ;;
++esac
++
+ SRC=$MODPATH
+-module=$MODPATH
++module="$TMPDIR/extreme-gt-staging"
++mkdir -p "$module" || abort '! 无法创建临时目录。'
++ui_print '- Extreme GT 4.2.1 · KernelSU / Hybrid Mount'
++# Run in a subshell so upstream local variables do not leak into the installer.
++( set -e; set -o pipefail; . "$SRC/patch-configs.sh" ) || abort '! 生成配置失败。'
+ 
+-setprop persist.sys.oplus.wifi.sla.game_high_temperature 50
+-# setprop persist.oplus.display.vrr 0
+-setprop persist.sys.environment.temp 25
+-# setprop persist.sys.horae.enable 0
++# Resolve device aliases before mapping into Hybrid Mount's canonical hierarchy.
++# Do not move partitions or create aliases: that is metainstall.sh's responsibility.
++: > "$MODPATH/overlay-files.txt"
++find "$module" -type f | sort | while IFS= read -r staged; do
++  target=${staged#"$module"}
++  if [ -e "$target" ]; then
++    target=$(readlink -f "$target") || exit 1
++  fi
++  case "$target" in
++    /system/*) relative=${target#/} ;;
++    /vendor/*|/product/*|/system_ext/*|/odm/*|/oem/*|/my_product/*|/my_stock/*|/my_heytap/*)
++      relative=system${target} ;;
++    *) ui_print "! 不支持的配置目标：$target"; exit 1 ;;
++  esac
++  destination="$MODPATH/$relative"
++  mkdir -p "${destination%/*}" || exit 1
++  cp -f "$staged" "$destination" || exit 1
++  set_perm "$destination" 0 0 0644
++  if [ -f "$target" ]; then
++    # Preserve the ROM's vendor/OPlus SELinux label instead of system_file everywhere.
++    chcon --reference="$target" "$destination" || exit 1
++  fi
++  printf '%s\t%s\n' "$relative" "$target" >> "$MODPATH/overlay-files.txt"
++done || abort '! 配置映射失败，请检查安装日志。'
+ 
+-mkdir -p $module
+-cat $SRC/extreme_gt/module.prop > $module/module.prop
+-cat $SRC/extreme_gt/post-fs-data.sh > $module/post-fs-data.sh
+-if [[ -f $module/disable ]]; then
+-  rm $module/disable
+-fi
++# Label directories using the actual device hierarchy, including dedicated OEM partitions.
++find "$MODPATH/system" -type d 2>/dev/null | while IFS= read -r directory; do
++  target=/${directory#"$MODPATH/"}
++  part=${target#/system/}
++  part=${part%%/*}
++  case "$part" in
++    vendor|product|system_ext|odm|oem|my_product|my_stock|my_heytap)
++      [ ! -d "/$part" ] || target=${target#/system} ;;
++  esac
++  chmod 0755 "$directory" || exit 1
++  [ ! -d "$target" ] || chcon --reference="$target" "$directory" || exit 1
++done || abort '! 无法设置目录权限。'
+ 
+-dirs="/odm /my_product /my_stock /vendor /system/vendor /product /system"
+-
+-xml_override() {
+-  mkdir -p $(dirname $module$1)
+-  overrides="$2"
+-
+-  for file in $(find $dirs -name "$1")
+-  do
+-    mkdir -p $(dirname $module$file)
+-    rows=$(cat $file)
+-    for override in $overrides; do
+-      key=$(echo $override | cut -f1 -d '=')
+-      value=$(echo $override | cut -f2 -d '=')
+-      rows=$(echo "$rows" | sed "s/<$key>.*</<$key>$value</")
+-    done
+-    echo "$rows" > $module$file
+-  done
+-}
+-
+-# sys_thermal_control_config.xml sys_thermal_control_config_gt.xml
+-boolValues="feature_enable_item feature_safety_test_enable_item aging_thermal_control_enable_item"
+-intValues="aging_cpu_level_item high_temp_safety_level_item game_high_perf_mode_item normal_mode_item ota_mode_item racing_mode_item"
+-for file in $(find $dirs -name "sys_thermal_control_config*.xml")
+-do
+-  mkdir -p $(dirname $module$file)
+-  rows=$(cat $file | grep -v -E '(<gear_config|cpu=|fps=|<scene_|</scene_|<category_|</category_|<subitem|<level|\.)')
+-
+-  for key in $boolValues; do
+-    rows=$(echo "$rows" | sed "s/<$key.*\/>/<$key booleanVal=\"false\" \/>/")
+-  done
+-
+-  for key in $intValues; do
+-    rows=$(echo "$rows" | sed "s/<$key.*\/>/<$key intVal=\"-1\" \/>/")
+-  done
+-
+-  echo "$rows" | tr -s '\n' > $module$file
+-done
+-
+-# sys_thermal_config.xml
+-xml_override 'sys_thermal_config.xml' "isOpen=0
+-more_heat_threshold=550
+-heat_threshold=530
+-less_heat_threshold=500
+-preheat_threshold=480
+-preheat_dex_oat_threshold=460
+-thermal_battery_temp=0
+-is_feature_on=0
+-is_upload_log=0
+-is_upload_errlog=0"
+-
+-# sys_high_temp_protect_*。xml
+-xml_override 'sys_high_temp_protect*xml' "isOpen=0
+-HighTemperatureProtectSwitch=false
+-HighTemperatureShutdownSwitch=false
+-HighTemperatureFirstStepSwitch=false
+-HighTemperatureProtectFirstStepIn=550
+-HighTemperatureProtectFirstStepOut=530
+-HighTemperatureProtectThresholdIn=570
+-HighTemperatureProtectThresholdOut=550
+-HighTemperatureProtectShutDown=750
+-MediumTemperatureProtectThreshold=10000
+-HighTemperatureDisableFlashSwitch=false
+-HighTemperatureDisableFlashLimit=480
+-HighTemperatureEnableFlashLimit=470
+-HighTemperatureDisableFlashChargeSwitch=false
+-HighTemperatureDisableFlashChargeLimit=480
+-HighTemperatureEnableFlashChargeLimit=470
+-camera_temperature_limit=520
+-HighTemperatureControlVideoRecordSwitch=false
+-HighTemperatureDisableVideoRecordLimit=550
+-HighTemperatureEnableVideoRecordLimit=520
+-ToleranceThreshold=50
+-ToleranceStart=480
+-ToleranceStop=460"
+-
+-patch_rr_config(){
+-  rr_config=$1
+-  # sed 's/<!--.*-->//' "$file" | grep -v -E '<item.*2-2-2-2.*/>' | sed 's/2-2-2-2/0-0-0-0/' | grep -v -E '<record' > $module$file
+-  sed -i 's/<!--.*-->//' "$rr_config"
+-  sed -i '/<item.*2-2-2-2.*\/>/d' $rr_config
+-  sed -i 's/2-2-2-2/0-0-0-0/' $rr_config
+-  sed -i '/<record/d' $rr_config
+-}
+-
+-# refresh_rate_config.xml
+-for file in $(find $dirs -name "refresh_rate_config.xml"); do
+-  mkdir -p $(dirname $module$file)
+-  cp -fp "$file" "$module$file"
+-  patch_rr_config "$module$file"
+-done
+-rr_config=/data/system/refresh_rate_config.xml
+-if [[ -f $rr_config ]]; then
+-  cp -f $rr_config $rr_config.bak
+-  patch_rr_config $rr_config
+-fi
+-
+-# thermallevel_to_fps.xml
+-for file in $(find $dirs -name "thermallevel_to_fps.xml")
+-do
+-  mkdir -p $(dirname $module$file)
+-  cp -fp "$file" "$module$file"
+-  sed -i "s/fps=\".*\"/fps=\"144\"/" $module$file
+-done
+-
+-# oppo_display_perf_list.xml
+-# multimedia_display_perf_list.xml
+-for file in $(find $dirs -name "oppo_display_perf_list.xml")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo -n '' > $module$file
+-  skip=0
+-  while read line; do
+-    case "$line" in
+-     *"<name>"*)
+-       skip=0
+-       case "$line" in
+-        *"sf.dps.feature"*|*"com.android"*|*"system_server"*|*"/system"*|*"com.color"*|*"com.oppo"*|*"com.oplus"**"SmartVolume"*)
+-          skip=0
+-          echo "  $line" >> $module$file
+-        ;;
+-        *)
+-          skip=1
+-        ;;
+-       esac
+-     ;;
+-     '<?xml version="1.0" encoding="UTF-8"?>'|'<filter-conf>'|'</filter-conf>')
+-         echo "$line" >> $module$file
+-     ;;
+-     *)
+-       if [[ $skip == 0 ]]; then
+-         echo "  $line" >> $module$file
+-       fi
+-     ;;
+-    esac
+-  done < $file
+-done
+-
+-# sys_resolution_switch_config.xml
+-for file in $(find $dirs -name "sys_resolution_switch_config.xml")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo -n '' > $module$file
+-  skip=0
+-  while read line; do
+-    case "$line" in
+-     *"<item package="*|*"<switchop package="*)
+-       echo "$line" > /dev/null
+-     ;;
+-     *)
+-       echo "$line" >> $module$file
+-     ;;
+-    esac
+-  done < $file
+-done
+-
+-# game_thermal_config.xml
+-for file in $(find $dirs -name "game_thermal_config.xml")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo -n '' > $module$file
+-  if [[ $(grep cluster3 $file) != '' ]];then
+-  echo '<?xml version="1.0" encoding="utf-8"?>
+-<game_thermal_config>
+-    <version>20230829</version>
+-    <filter-name>game_thermal_config</filter-name>
+-    <heavy_policy>
+-        <game_control temp="520" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="60"/>
+-    </heavy_policy>
+-    <default_policy>
+-        <game_control temp="430" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="440" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="450" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="460" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="470" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="480" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="490" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-        <game_control temp="510" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
+-    </default_policy>
+-</game_thermal_config>' > $module$file
+-  else
+-  echo '<?xml version="1.0" encoding="utf-8"?>
+-<game_thermal_config>
+-    <version>20230829</version>
+-    <filter-name>game_thermal_config</filter-name>
+-    <heavy_policy>
+-        <game_control temp="520" cluster0="-1" cluster1="-1" cluster2="-1" fps="60"/>
+-    </heavy_policy>
+-    <default_policy>
+-        <game_control temp="430" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="440" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="450" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="460" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="470" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="480" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="490" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-        <game_control temp="510" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
+-    </default_policy>
+-</game_thermal_config>' > $module$file
+-  fi
+-done
+-
+-# QEGA_Config.txt
+-for file in $(find $dirs -name "QEGA_Config.txt")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo "SkinTemperatureNode:   battery
+-SkinNodeThrottleTemp:  55000
+-#GameID   GameAPK    MaxTemperature  MaxCurrent  AvgCurrent
+-100001    hok         52000          2000        1800
+-0         adaptive    55000          2000        1800" > $module$file
+-done
+-
+-# devices_config.json
+-for file in $(find $dirs -name "devices_config.json")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo -n '' > $module$file
+-  while read line; do
+-    case "$line" in
+-     *'"high.capacity.threshold": 100'*)
+-       echo "$line" >> $module$file
+-     ;;
+-     *'"battery.temperate.range":'*)
+-       echo '"battery.temperate.range": "[100,500]",' >> $module$file
+-     ;;
+-     *'"high.capacity.battery.temperate.range":'*)
+-       echo '"high.capacity.battery.temperate.range": "[100,500]",' >> $module$file
+-     ;;
+-     *'"high.capacity.threshold":'*)
+-       echo '"high.capacity.threshold": 85' >> $module$file
+-     ;;
+-     *)
+-       echo "$line" >> $module$file
+-     ;;
+-    esac
+-  done < $file
+-done
+-
+-# charging_thermal_config_default.txt charging_hyper_mode_config.txt
+-for file in $(find $dirs -name "charging_*txt")
+-do
+-  mkdir -p $(dirname $module$file)
+-  echo -n '' > $module$file
+-  while read line; do
+-    case "$line" in
+-     *:=*)
+-       echo "$line" >> $module$file
+-     ;;
+-     *,*,*)
+-       temp=$(echo "$line" | awk -F, '{print $1}')
+-       current=$(echo "$line" | awk -F, '{print $2}')
+-       t=$(echo "$line" | awk -F, '{print $3}')
+-       temp=$((temp+50)) # + 5°C
+-       echo "$temp,$current,$t" >> $module$file
+-     ;;
+-     *)
+-       echo "$line" >> $module$file
+-     ;;
+-    esac
+-  done < $file
+-done
+-
+-# D1100/1200
+-soc=$(getprop ro.board.platform)
+-if [[ "$soc" == 'mt6891' ]] || [[ "$soc" == 'mt6893' ]] || [[ "$soc" == 'mt6889' ]]; then
+-  mkdir -p $module/system/vendor/etc
+-  mkdir -p $module/system/vendor/etc/.tp
+-  if [[ -d /odm/etc/powerhal ]]; then
+-    mkdir -p $module/odm/etc/powerhal
+-  fi
+-
+-  for file in power_app_cfg.xml powercontable.xml powerscntbl.xml
+-  do
+-    cp -f $SRC/extreme_gt/d1x00/$file $module/system/vendor/etc/$file
+-    if [[ -d /odm/etc/powerhal ]]; then
+-      cp -f $SRC/extreme_gt/d1x00/$file $module/odm/etc/powerhal/$file
+-    fi
+-  done
+-  cp -f $SRC/extreme_gt/d1x00/tp/ht120.mtc $module/system/vendor/etc/.tp/.ht120.mtc
+-  cp -f $SRC/extreme_gt/d1x00/tp/thermal_policy_08 $module/system/vendor/etc/.tp/.thermal_policy_08
+-  cp -f $SRC/extreme_gt/d1x00/tp/thermal.conf $module/system/vendor/etc/.tp/thermal.conf
+-  cp -f $SRC/extreme_gt/d1x00/tp/thermal.off.conf $module/system/vendor/etc/.tp/thermal.off.conf
+-  cat $SRC/extreme_gt/d1x00/service.sh > $module/service.sh
+-else
+-  cat $SRC/extreme_gt/service.sh > $module/service.sh
+-fi
+-
+-manufacturer=$(getprop ro.product.odm.manufacturer)
+-soc=$(getprop ro.soc.model | tr 'a-z' 'A-Z')
+-
+-echo 'persist.sys.horae.enable=0' > $module/system.prop
+-if [[ -f $START_DIR/orms_core_config.xml ]]; then
+-  mkdir -p $module/odm/etc/orms
+-  cp -f $START_DIR/orms_core_config.xml $module/odm/etc/orms/orms_core_config.xml
+-fi
+-
+-# Mediatek thermal config
+-mtk_t=/vendor/etc/thermal
+-if [[ -d $mtk_t ]]; then
+-  mkdir -p $module/system$mtk_t
+-  for file in `ls $mtk_t`
+-  do
+-    case $file in
+-      "disable_"*|"fix_ttj_95.conf")
+-        cp $mtk_t/$file $module/system$mtk_t/
+-      ;;
+-      "fix_ttj_85.conf")
+-        cp $mtk_t/fix_ttj_95.conf $module/system$mtk_t/
+-      ;;
+-      *)
+-        echo $file
+-        if [[ -f $mtk_t/disable_skin_control.conf ]]; then
+-         cp $mtk_t/disable_skin_control.conf $module/system$mtk_t/$file
+-        else
+-         cp $mtk_t/fix_ttj_95.conf $module/system$mtk_t/$file
+-        fi
+-      ;;
+-    esac
+-  done
+-fi
+-
+-handle_partition() {
+-  # if /system/vendor is a symlink, we need to move it out of $MODPATH/system, otherwise it will be overlayed
+-  # if /system/vendor is a normal directory, it is ok to overlay it and we don't need to overlay it separately.
+-
+-  if [ -L "/system/$1" ] && [ "$(readlink -f /system/$1)" = "/$1" ]; then
+-    # we create a symlink if module want to access $module/system/$1
+-    # but it doesn't always work(ie. write it in post-fs-data.sh would fail because it is readonly)
+-    if [ -e $module/system/$1 ]; then
+-      mv -f $module/system/$1 $module/$1
+-    fi
+-    if [ -e ../$1 ]; then
+-      ln -sf ../$1 $module/system/$1
+-    fi
+-  fi
+-}
+-
+-cd $module
+-mkdir -p $module/system
+-handle_partition 'vendor'
+-handle_partition 'system_ext'
+-handle_partition 'product'
+-
+-set_perm_recursive $MODPATH 0 0 0755 0644
+-
+-echo 'OK ^_*' 1>&2
++set_perm "$MODPATH/service.sh" 0 0 0755
++set_perm "$MODPATH/action.sh" 0 0 0755
++ui_print '- 配置已生成；重启后由 Hybrid Mount 挂载。'
++ui_print '- 上游温控与充电阈值规则保留；请先阅读项目说明。'
+--- a/extreme_gt/d1x00/power_app_cfg.xml
++++ /dev/null
+@@ -1,6 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<!-- The source code provided herein is for optimizing power and performance of gaming software
+-and certain applications (e.g. Sina Weibo, QQ) only and should not be used and/or included in
+-any software that is unrelated to enhancing end-user experience. -->
+-<WHITELIST>
+-</WHITELIST>
+\ No newline at end of file
+--- a/extreme_gt/d1x00/powercontable.xml
++++ /dev/null
+@@ -1,2 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<CONTABLE></CONTABLE>
+--- a/extreme_gt/d1x00/powerscntbl.xml
++++ /dev/null
+@@ -1,3 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<SCNTABLE>
+-</SCNTABLE>
+--- a/extreme_gt/d1x00/service.sh
++++ /dev/null
+@@ -1,69 +0,0 @@
+-lock_value() {
+-  if [[ -f $2 ]];then
+-    chmod 644 $2
+-    echo $1 > $2
+-    chmod 444 $2
+-  fi
+-}
+-
+-if [[ "$soc" == 'mt6891' ]] || [[ "$soc" == 'mt6893' ]] || [[ "$soc" == 'mt6889' ]]; then
+-  disable_core_ctl() {
+-    c0=/sys/devices/system/cpu/cpu0/core_ctl
+-    c1=/sys/devices/system/cpu/cpu4/core_ctl
+-    c2=/sys/devices/system/cpu/cpu7/core_ctl
+-
+-    lock_value 4 $c0/max_cpus
+-    lock_value 4 $c0/min_cpus
+-    lock_value 0 $c0/enable
+-
+-    lock_value 3 $c1/max_cpus
+-    lock_value 3 $c1/min_cpus
+-    lock_value 0 $c1/enable
+-
+-    lock_value 1 $c2/max_cpus
+-    lock_value 1 $c2/min_cpus
+-    lock_value 0 $c2/enable
+-
+-    lock_value -1 /sys/kernel/fpsgo/fbt/thrm_limit_cpu
+-    lock_value -1 /sys/kernel/fpsgo/fbt/thrm_sub_cpu
+-  }
+-  sched_isolation_disable() {
+-    for i in 0 1 2 3 4 5 6 7; do
+-      echo $i > /sys/devices/system/cpu/sched/set_sched_deisolation
+-    done
+-    chmod 000 /sys/devices/system/cpu/sched/set_sched_isolation
+-    disable_core_ctl
+-  }
+-
+-  for i in 3 4 5 6; do
+-    echo $i 0 0 > /proc/gpufreq/gpufreq_limit_table
+-  done
+-  for i in 'hard_userlimit_cpu_freq' 'hard_userlimit_freq_limit_by_others'; do
+-    echo 0 -1 > /proc/ppm/policy/$i
+-    echo 1 -1 > /proc/ppm/policy/$i
+-    chmod 444 /proc/ppm/policy/$i
+-    # cat /proc/ppm/policy/$i
+-  done
+-  for i in 3 4 5 6; do
+-    echo $i 0 0 > /proc/gpufreq/gpufreq_limit_table
+-  done
+-
+-  # PPM
+-  echo 1 > /proc/ppm/enabled
+-  cat /proc/ppm/policy_status | grep -e '\[.*\]' | while read row
+-  do
+-    case "$row" in
+-      *"PPM_POLICY_HARD_USER_LIMIT"*)
+-        v=1
+-      ;;
+-      *)
+-        v=0
+-      ;;
+-    esac
+-    echo ${row:1:1} $v > /proc/ppm/policy_status
+-  done
+-  lock_value 100 /sys/kernel/fpsgo/fbt/thrm_temp_th
+-  lock_value -1 /sys/kernel/fpsgo/fbt/thrm_limit_cpu
+-  lock_value -1 /sys/kernel/fpsgo/fbt/thrm_sub_cpu
+-  sched_isolation_disable
+-fi
+--- a/extreme_gt/d1x00/tp/ht120.mtc
++++ /dev/null
+@@ -1,74 +0,0 @@
+-SfebGmowgWang
+-MU8;=8
+-SfebIsj
+-SfebGIe[U
+-/qtrg4s slopnhv4s s"sdrx1x$zz!t
+-
+-/qtrg4s slopnhv4s s"sqolg2y%  su
+-
+-/qtrg4s slopnhv4s s"sccwxjx%5!yttvx
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo23
+-
+-/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
+-
+-/qtrg4s slopnhv4s s"sxow1x$zz!t
+-
+-/qtrg4s slopnhv4s s"sBR0w#yy "
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo24
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo25
+-
+-SfebIsj
+-SfebMYV
+-/qtrg4jyq$es1wljxtiu/u!exxewi an
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
+-/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
+-/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
+-1
+-SfebIsj
+-SfebVYV
+-/qtrg4jyq$es1wljxtiu/u!ftz
+-1!34;567(9 nvnxxiw"6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"545
+-/qtrg4jyq$es1wljxtiu/u!sqni
+-1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
+-/qtrg4jyq$es1wljxtiu/u!eeyzlz'
+-1!83456'8)mumwwgg !nrz/v"xxz!)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-/qtrg4jyq$es1wljxtiu/u!se
+-1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
+-/qtrg4jyq$es1wljxtiu/u!flfxnm 
+-1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
+-/qtrg4jyq$es1wljxtiu/u!zqy
+-1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
+-/qtrg4jyq$es1wljxtiu/u!exx
+-1!334567(9 nvnxxGW5!yttvx%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!3345
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj
+-1!354567(9 nvn1hr4s!hvvgs!t79)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-/qtrg4jyq$es1wljxtiu/u!exxvh
+-1!354567(9 nvn1hr4s!hvvgs!t7:)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-SfebIsj
+-SfebX_e[U
+-/qtrg4s s"z0owoyyjx#
+-mbaois&8(
+-/qtrg4s s"z0owoyywurc
+-mbaois&;(
+-/qtrg4s s"z0owoyyii"tft!
+-mbaois&;(
+-/qtrg4s s"z0owoyywi
+-mbaois&8(
+-/qtrg4s s"z0owoyyjpjrhgu
+-mbaois&8(
+-/qtrg4s s"z0owoyy#u"
+-mbaois&8(
+-/qtrg4s s"z0owoyyHX
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!nsrd
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!merd
+-mbaois&8(
+-SfebIsj
+-EPH
+--- a/extreme_gt/d1x00/tp/thermal.conf
++++ /dev/null
+@@ -1,100 +0,0 @@
+-SfebGmowgWang
+-MU8;=8
+-SfebIsj
+-SfebGIe[U
+-/qtrg4s slopnhv4s s"sdrx1x$zz!t
+-
+-/qtrg4s slopnhv4iw"haecsxn!lg9
+-EYKW$;678
+-/qtrg4s slopnhv4iw"haecsxn!lg:
+-mumwwFV'?=012#I]O[(>012
+-/qtrg4s slopnhv4s s"sqolg2y%  su
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo23
+-
+-/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
+-
+-/qtrg4s slopnhv4s s"sxow1x$zz!t
+-
+-/qtrg4s slopnhv4s s"sBR0w#yy "
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo26
+-
+-/qtrg4s slopnhv4s s6cm/fer67
+-EYKW$;678
+-/qtrg4s slopnhv4giklt`nfqtlm
+-EYKW$>?@
+-/qtrg4s slopnhv4giklt
+-EYKW$>?@
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo24
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo25
+-
+-SfebIsj
+-SfebMYV
+-/qtrg4jyq$es1wljxtiu/u!exxewi an
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
+-/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-0!4345&88)16"4$:=7(9 323$5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-1!3345&88)16"4$7>7(9 293$5
+-/qtrg4jyq$es1wljxtiu/dneghz
+-0!784%9<8)162
+-/qtrg4jyq$es1wljxtiu/dnpyyzf ntukqk
+-0!93456'?9012#<%79(:6!:#57&8>
+-/qtrg4jyq$es1wljxtiu/dnfxr
+-2!334567(B0123$=6789 97345&@;901";9567(;36234%8789 353456':901"845&<89 25845
+-/qtrg4jyq$es1wljxtiu/dndfhi 
+-52234%7789 323456'=)2123$5&7(<012#4%7
+-/qtrg4jyq$es1wljxtiu/dndfhi gucnqij
+-1!76456'9901"545678)5!4345&=89
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-0!5#8%78(< 27#5%7<
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-1!5#8%;'8)0!2#4
+-/qtrg4jyq$es1wljxtiu/xkimdoug!od
+-1!2#8%6'@>012#9567(:012#95&989 6234%878)212#55678)11234
+-/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
+-0
+-SfebIsj
+-SfebVYV
+-/qtrg4jyq$es1wljxtiu/u!ftz
+-3!34;567(9 nvnxxiw"6szuuwy&?=901"3$hv!gjdbrwm kf8)77234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
+-/qtrg4jyq$es1wljxtiu/u!sqni
+-1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
+-/qtrg4jyq$es1wljxtiu/u!se
+-1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
+-/qtrg4jyq$es1wljxtiu/u!flfxnm 
+-1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
+-/qtrg4jyq$es1wljxtiu/u!zqy
+-1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
+-/qtrg4jyq$es1wljxtiu/u!exx
+-5!334567(9 nvnxxGW5!yttvx%?7890!2#qyq4ku-lukyyjv$w04"8<567(9 nvn1hr4kjm12#97678)0!ceghzftlmphi$:6789 1"dfhi (9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(:012
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj
+-3!354567(9 nvn1hr4s!hvvgs!t79)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-/qtrg4jyq$es1wljxtiu/u!exxvh
+-4!354567(9 nvn1hr4s!hvvgs!t7:)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'@>012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
+-SfebIsj
+-SfebX_e[U
+-/qtrg4s s"z0owoyyjx#
+-mbaois&8(
+-/qtrg4s s"z0owoyywurc
+-mbaois&;(
+-/qtrg4s s"z0owoyywi
+-mbaois&8(
+-/qtrg4s s"z0owoyyjpjrhgu
+-mbaois&8(
+-/qtrg4s s"z0owoyy#u"
+-mbaois&8(
+-/qtrg4s s"z0owoyyHX
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!nsrd
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!merd
+-mbaois&8(
+-SfebIsj
+-EPH
+--- a/extreme_gt/d1x00/tp/thermal.off.conf
++++ /dev/null
+@@ -1,88 +0,0 @@
+-SfebGmowgWang
+-MU8;=8
+-SfebIsj
+-SfebGIe[U
+-/qtrg4s slopnhv4s s"sdrx1x$zz!t
+-
+-/qtrg4s slopnhv4iw"haecsxn!lg9
+-EYKW$;678
+-/qtrg4s slopnhv4iw"haecsxn!lg:
+-mumwwFV'?=012#I]O[(>012
+-/qtrg4s slopnhv4s s"sqolg2y%  su
+-
+-/qtrg4s slopnhv4s s"sccwxjx%5!yttvx
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo23
+-
+-/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
+-
+-/qtrg4s slopnhv4s s"sxow1x$zz!t
+-
+-/qtrg4s slopnhv4s s"sBR0w#yy "
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo24
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo25
+-
+-SfebIsj
+-SfebMYV
+-/qtrg4jyq$es1wljxtiu/u!exxewi an
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
+-/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-0!4345&88)16"4$:=7(9 323$5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-1!3345&88)16"4$7>7(9 293$5
+-/qtrg4jyq$es1wljxtiu/dnfxr
+-2!334567(B0123$=6789 97345&@;901";9567(;36234%8789 353456':901"845&<89 25845
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-0!5#8%78(= 27#5%7<
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-1!5#8%;'8)0!2#4
+-/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
+-0
+-SfebIsj
+-SfebVYV
+-/qtrg4jyq$es1wljxtiu/u!ftz
+-3!34;567(9 nvnxxiw"6szuuwy&?=901"3$hv!gjdbrwm kf8)77234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
+-/qtrg4jyq$es1wljxtiu/u!sqni
+-1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
+-/qtrg4jyq$es1wljxtiu/u!eeyzlz'
+-1!83456'8)mumwwgg !nrz/v"xxz!)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-/qtrg4jyq$es1wljxtiu/u!se
+-1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
+-/qtrg4jyq$es1wljxtiu/u!flfxnm 
+-1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
+-/qtrg4jyq$es1wljxtiu/u!zqy
+-1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
+-/qtrg4jyq$es1wljxtiu/u!exx
+-1!334567(9 nvnxxGW5!yttvx%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!3345
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj
+-1!354567(9 nvn1hr4s!hvvgs!t79)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-/qtrg4jyq$es1wljxtiu/u!exxvh
+-1!354567(9 nvn1hr4s!hvvgs!t7:)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%7789
+-SfebIsj
+-SfebX_e[U
+-/qtrg4s s"z0owoyyjx#
+-mbaois&8(
+-/qtrg4s s"z0owoyywurc
+-mbaois&;(
+-/qtrg4s s"z0owoyyii"tft!
+-mbaois&;(
+-/qtrg4s s"z0owoyywi
+-mbaois&8(
+-/qtrg4s s"z0owoyyjpjrhgu
+-mbaois&8(
+-/qtrg4s s"z0owoyy#u"
+-mbaois&8(
+-/qtrg4s s"z0owoyyHX
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!nsrd
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!merd
+-mbaois&8(
+-SfebIsj
+-EPH
+--- a/extreme_gt/d1x00/tp/thermal_policy_08
++++ /dev/null
+@@ -1,100 +0,0 @@
+-SfebGmowgWang
+-MU8;=8
+-SfebIsj
+-SfebGIe[U
+-/qtrg4s slopnhv4s s"sdrx1x$zz!t
+-
+-/qtrg4s slopnhv4iw"haecsxn!lg9
+-EYKW$;678
+-/qtrg4s slopnhv4iw"haecsxn!lg:
+-mumwwFV'?=012#I]O[(>012
+-/qtrg4s slopnhv4s s"sqolg2y%  su
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo23
+-
+-/qtrg4s slopnhv4s s"sdjdvlky5!yttvx
+-
+-/qtrg4s slopnhv4s s"sxow1x$zz!t
+-
+-/qtrg4s slopnhv4s s"sBR0w#yy "
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo26
+-
+-/qtrg4s slopnhv4s s6cm/fer67
+-EYKW$;678
+-/qtrg4s slopnhv4giklt`nfqtlm
+-EYKW$>?@
+-/qtrg4s slopnhv4giklt
+-EYKW$>?@
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo24
+-
+-/qtrg4s slopnhv4s s6cm/nwm  lxwo25
+-
+-SfebIsj
+-SfebMYV
+-/qtrg4jyq$es1wljxtiu/u!exxewi an
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"3
+-/qtrg4jyq$es1wljxtiu/u!exxvhgyascp
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"4
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj_qcuer
+-PVRbV%778901"SYUe]WUT!3;45&V^NR`EUMYOJIU_M"77>=89B OVFcYGITN 8"5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-0!4345&88)16"4$:=7(9 323$5
+-/qtrg4jyq$es1wljxtiu/dndxrezm"tjpj
+-1!3345&88)16"4$7>7(9 293$5
+-/qtrg4jyq$es1wljxtiu/dneghz
+-0!784%9<8)162
+-/qtrg4jyq$es1wljxtiu/dnpyyzf ntukqk
+-0!93456'?9012#<%79(:6!:#57&8>
+-/qtrg4jyq$es1wljxtiu/dnfxr
+-2!;8456'@>012#;5678)76234%?7890!:3456':<5123$7678)242345&9890!734%;78)14734
+-/qtrg4jyq$es1wljxtiu/dndfhi 
+-52234%7789 323456'=)2123$5&7(<012#4%7
+-/qtrg4jyq$es1wljxtiu/dndfhi gucnqij
+-1!76456'9901"545678)5!4345&=89
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-0!5#8%78(< 27#5%7<
+-/qtrg4jyq$es1wljxtiu/dndxrejx#_nkqctvw
+-1!5#8%;'8)0!2#4
+-/qtrg4jyq$es1wljxtiu/xkimdoug!od
+-1!2#8%6'@>012#9567(:012#95&989 6234%878)212#55678)11234
+-/qtrg4jyq$es1wljxtiu/tusqdzom mbnbxmxv!"lf
+-0
+-SfebIsj
+-SfebVYV
+-/qtrg4jyq$es1wljxtiu/u!ftz
+-3!34;567(9 nvnxxiw"6szuuwy&<?901"3$hv!gjdbrwm kf8)57234%6'kyu`cgeuzp#n_2"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  323
+-/qtrg4jyq$es1wljxtiu/u!sqni
+-1!36:567(9 nvnxxvtql-t vvxz'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#5567
+-/qtrg4jyq$es1wljxtiu/u!se
+-1!354567(9 nvn1hr4s!hvvgs!t78)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%8789
+-/qtrg4jyq$es1wljxtiu/u!flfxnm 
+-1!354567(9 nvnxxioi gft0w#yy " 1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&9890
+-/qtrg4jyq$es1wljxtiu/u!zqy
+-1!354567(9 nvnxx"t!6szuuwy&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(9 1"qs2ivwues"4456
+-/qtrg4jyq$es1wljxtiu/u!exx
+-5!334567(9 nvnxxGW5!yttvx%?7890!2#qyq4ku-lukyyjv$w04"8<567(9 nvn1hr4kjm12#97678)0!ceghzftlmphi$:6789 1"dfhi (9 1"qs2ivwues"3$5&uw6cpqoiw&7(9 oq0gtusm  1"3$su4kxomgu$5&7(wo.ersqky(:012
+-/qtrg4jyq$es1wljxtiu/u!exxtyxj
+-4!354567(9 nvn1hr4s!hvvgs!t79)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'>A012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
+-/qtrg4jyq$es1wljxtiu/u!exxvh
+-4!354567(9 nvn1hr4s!hvvgs!t7:)122345&7(wo.ersqky(:01234%6'vx-dqrpjx'>A012#4%tv5lopnhv%6'8)np/fstrlz)0!2#rt3jwxlft#4%6'vx-dqrpjx'8)0!pr1huvtnr!2#4%tv5lopnhv%6'8)np/fstrlz)1123
+-SfebIsj
+-SfebX_e[U
+-/qtrg4s s"z0owoyyjx#
+-mbaois&8(
+-/qtrg4s s"z0owoyywurc
+-mbaois&;(
+-/qtrg4s s"z0owoyywi
+-mbaois&8(
+-/qtrg4s s"z0owoyyjpjrhgu
+-mbaois&8(
+-/qtrg4s s"z0owoyy#u"
+-mbaois&8(
+-/qtrg4s s"z0owoyyHX
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!nsrd
+-mbaois&8(
+-/qtrg4s s"z0owoyyi!!merd
+-mbaois&8(
+-SfebIsj
+-EPH
+--- a/extreme_gt/module.prop
++++ /dev/null
+@@ -1,8 +0,0 @@
+-id=extreme_gt
+-name=Extreme GT
+-version=4.2.1
+-versionCode=4210
+-author=嘟嘟ski & SCENE
+-description=本模块由SCENE生成，用于去除OPPO、Realme、OnePlus机型的锁帧和部分温控限制
+-minMagisk=17000
+-updateJson=https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt.json
+--- a/extreme_gt/post-fs-data.sh
++++ /dev/null
+@@ -1,28 +0,0 @@
+-MODDIR=${0%/*}
+-
+-# 模块务必要处理文件权限，如：
+-# set_perm_recursive  $MODPATH  0  0  0755  0644
+-
+-# MODDIR=/data/adb/modules/extreme_gt
+-
+-# replace_files /my_product
+-replace_files() {
+-  local folder="$1"
+-  find "$MODDIR/$folder" -type f 2>/dev/null | while read -r src; do
+-    local dst="${src#$MODDIR}"
+-    [[ -f "$dst" ]] && mount --bind "$src" "$dst"
+-  done
+-}
+-
+-# 需要手动挂载的目录
+-mount_folders='my_product my_heytap my_stock odm'
+-if [[ "$KSU" == "true" ]] || [[ $(which ksud) != "" ]] || [[ $(which apd) != "" ]]; then
+-  mount_folders='my_product my_heytap my_stock'
+-fi
+-
+-# 遍历需要处理的特殊目录
+-for folder in $mount_folders; do
+-  if [[ -d $MODDIR/$folder ]]; then
+-    replace_files "$folder"
+-  fi
+-done
+\ No newline at end of file
+--- a/extreme_gt/service.sh
++++ /dev/null
+@@ -1,48 +0,0 @@
+-# SCENE'ExtremeGT
+-
+-t=29500
+-bat_t=29500
+-shell_t=33000
+-for tz in /sys/class/thermal/*
+-do
+-  if [[ -f $tz/temp ]]; then
+-    case $(cat $tz/type) in
+-      pm8550_gpio03_usr|pm8550vs_g_tz|pm8550b_tz|pm8550vs_c_tz|pa-therm2-sys3)
+-        echo $t > $tz/emul_temp
+-      ;;
+-      rear-tof-therm|cam-flash-therm)
+-        echo $t > $tz/emul_temp
+-      ;;
+-      batt-therm|usb-therm)
+-        echo $bat_t > $tz/emul_temp
+-      ;;
+-      wlan-therm|xo-therm|oplus_thermal_ipa)
+-        echo $t > $tz/emul_temp
+-      ;;
+-      board_temp|ap_ntc|ltepa_ntc|nrpa_ntc|wcn_temp)
+-        echo $t > $tz/emul_temp
+-      ;;
+-      shell*)
+-        echo $shell_t > $tz/emul_temp
+-      ;;
+-    esac
+-  fi
+-done
+-
+-# 可能导致相机性能异常、充电状态检测异常
+-# stop horae
+-
+-for i in `seq 0 9`; do
+-  echo $i $t > /proc/shell-temp
+-done
+-
+-# 恢复8E 105°C墙，但似乎没啥必要
+-# stop thermal-engine
+-
+-gu=/proc/oplus-votable/GAUGE_UPDATE
+-if [[ -d $gu ]]; then
+- chmod 666 $gu/force_val
+- echo '1000' > $gu/force_val
+- chmod 666 $gu/force_active
+- echo '1' > $gu/force_active
+-fi
+--- a/extreme_gt/uninstall.sh
++++ /dev/null
+@@ -1,2 +0,0 @@
+-echo '' > /data/adb/modules/extreme_gt/remove
+-setprop sys.extreme_gt.uninstall 1
+\ No newline at end of file
+--- a/module.prop
++++ b/module.prop
+@@ -1,8 +1,6 @@
+ id=extreme_gt
+-name=Extreme GT
+-version=4.2.1
+-versionCode=4210
+-author=嘟嘟ski & SCENE
+-description=本模块由SCENE生成，用于去除OPPO、Realme、OnePlus机型的锁帧和部分温控限制
+-minMagisk=17000
+-updateJson=https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt.json
++name=Extreme GT · KernelSU Hybrid Mount
++version=4.2.1-ksu.1
++versionCode=4211
++author=嘟嘟ski & SCENE; KernelSU adaptation
++description=OPPO/Realme/OnePlus 锁帧与温控配置适配；依赖 meta-hybrid_mount，所有覆盖由元模块挂载。
+--- /dev/null
++++ b/patch-configs.sh
+@@ -0,0 +1,292 @@
++#!/system/bin/sh
++# Configuration transforms derived from upstream Extreme GT 4.2.1.
++dirs=""
++for dir in /odm /my_product /my_stock /my_heytap /vendor /product /system_ext /system; do
++  [ -d "$dir" ] && dirs="$dirs $dir"
++done
++
++xml_override() {
++  overrides="$2"
++
++  find $dirs -type f -name "$1" 2>/dev/null | while IFS= read -r file; do
++    mkdir -p "$(dirname "$module$file")"
++    rows=$(cat "$file")
++    for override in $overrides; do
++      key=$(echo $override | cut -f1 -d '=')
++      value=$(echo $override | cut -f2 -d '=')
++      rows=$(echo "$rows" | sed "s|<$key>[^<]*</$key>|<$key>$value</$key>|g")
++    done
++    echo "$rows" > "$module$file"
++  done
++}
++
++# sys_thermal_control_config.xml sys_thermal_control_config_gt.xml
++boolValues="feature_enable_item feature_safety_test_enable_item aging_thermal_control_enable_item"
++intValues="aging_cpu_level_item high_temp_safety_level_item game_high_perf_mode_item normal_mode_item ota_mode_item racing_mode_item"
++find $dirs -type f -name "sys_thermal_control_config*.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  rows=$(cat "$file" | grep -v -E '(<gear_config|cpu=|fps=|<scene_|</scene_|<category_|</category_|<subitem|<level|\.)')
++
++  for key in $boolValues; do
++    rows=$(echo "$rows" | sed "s/<$key.*\/>/<$key booleanVal=\"false\" \/>/")
++  done
++
++  for key in $intValues; do
++    rows=$(echo "$rows" | sed "s/<$key.*\/>/<$key intVal=\"-1\" \/>/")
++  done
++
++  echo "$rows" | tr -s '\n' > "$module$file"
++done
++
++# sys_thermal_config.xml
++xml_override 'sys_thermal_config.xml' "isOpen=0
++more_heat_threshold=550
++heat_threshold=530
++less_heat_threshold=500
++preheat_threshold=480
++preheat_dex_oat_threshold=460
++thermal_battery_temp=0
++is_feature_on=0
++is_upload_log=0
++is_upload_errlog=0"
++
++# sys_high_temp_protect_*。xml
++xml_override 'sys_high_temp_protect*xml' "isOpen=0
++HighTemperatureProtectSwitch=false
++HighTemperatureShutdownSwitch=false
++HighTemperatureFirstStepSwitch=false
++HighTemperatureProtectFirstStepIn=550
++HighTemperatureProtectFirstStepOut=530
++HighTemperatureProtectThresholdIn=570
++HighTemperatureProtectThresholdOut=550
++HighTemperatureProtectShutDown=750
++MediumTemperatureProtectThreshold=10000
++HighTemperatureDisableFlashSwitch=false
++HighTemperatureDisableFlashLimit=480
++HighTemperatureEnableFlashLimit=470
++HighTemperatureDisableFlashChargeSwitch=false
++HighTemperatureDisableFlashChargeLimit=480
++HighTemperatureEnableFlashChargeLimit=470
++camera_temperature_limit=520
++HighTemperatureControlVideoRecordSwitch=false
++HighTemperatureDisableVideoRecordLimit=550
++HighTemperatureEnableVideoRecordLimit=520
++ToleranceThreshold=50
++ToleranceStart=480
++ToleranceStop=460"
++
++patch_rr_config(){
++  rr_config=$1
++  # sed 's/<!--.*-->//' "$file" | grep -v -E '<item.*2-2-2-2.*/>' | sed 's/2-2-2-2/0-0-0-0/' | grep -v -E '<record' > "$module$file"
++  sed -i 's/<!--.*-->//' "$rr_config"
++  sed -i '/<item.*2-2-2-2.*\/>/d' "$rr_config"
++  sed -i 's/2-2-2-2/0-0-0-0/' "$rr_config"
++  sed -i '/<record/d' "$rr_config"
++}
++
++# refresh_rate_config.xml
++find $dirs -type f -name "refresh_rate_config.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  cp -fp "$file" "$module$file"
++  patch_rr_config "$module$file"
++done
++# /data/system is not a systemless partition; do not edit its persistent cache.
++
++# thermallevel_to_fps.xml
++find $dirs -type f -name "thermallevel_to_fps.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  cp -fp "$file" "$module$file"
++  sed -i "s/fps=\"[^\"]*\"/fps=\"144\"/g" "$module$file"
++done
++
++# oppo_display_perf_list.xml
++# multimedia_display_perf_list.xml
++find $dirs -type f -name "oppo_display_perf_list.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  echo -n '' > "$module$file"
++  skip=0
++  while IFS= read -r line || [ -n "$line" ]; do
++    case "$line" in
++     *"<name>"*)
++       skip=0
++       case "$line" in
++        *"sf.dps.feature"*|*"com.android"*|*"system_server"*|*"/system"*|*"com.color"*|*"com.oppo"*|*"com.oplus"**"SmartVolume"*)
++          skip=0
++          echo "  $line" >> "$module$file"
++        ;;
++        *)
++          skip=1
++        ;;
++       esac
++     ;;
++     '<?xml version="1.0" encoding="UTF-8"?>'|'<filter-conf>'|'</filter-conf>')
++         echo "$line" >> "$module$file"
++     ;;
++     *)
++       if [[ $skip == 0 ]]; then
++         echo "  $line" >> "$module$file"
++       fi
++     ;;
++    esac
++  done < "$file"
++done
++
++# sys_resolution_switch_config.xml
++find $dirs -type f -name "sys_resolution_switch_config.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  echo -n '' > "$module$file"
++  skip=0
++  while IFS= read -r line || [ -n "$line" ]; do
++    case "$line" in
++     *"<item package="*|*"<switchop package="*)
++       echo "$line" > /dev/null
++     ;;
++     *)
++       echo "$line" >> "$module$file"
++     ;;
++    esac
++  done < "$file"
++done
++
++# game_thermal_config.xml
++find $dirs -type f -name "game_thermal_config.xml" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  echo -n '' > "$module$file"
++  if [[ $(grep cluster3 "$file") != '' ]];then
++  echo '<?xml version="1.0" encoding="utf-8"?>
++<game_thermal_config>
++    <version>20230829</version>
++    <filter-name>game_thermal_config</filter-name>
++    <heavy_policy>
++        <game_control temp="520" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="60"/>
++    </heavy_policy>
++    <default_policy>
++        <game_control temp="430" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="440" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="450" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="460" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="470" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="480" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="490" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++        <game_control temp="510" cluster0="-1" cluster1="-1" cluster2="-1" cluster3="-1" fps="0"/>
++    </default_policy>
++</game_thermal_config>' > "$module$file"
++  else
++  echo '<?xml version="1.0" encoding="utf-8"?>
++<game_thermal_config>
++    <version>20230829</version>
++    <filter-name>game_thermal_config</filter-name>
++    <heavy_policy>
++        <game_control temp="520" cluster0="-1" cluster1="-1" cluster2="-1" fps="60"/>
++    </heavy_policy>
++    <default_policy>
++        <game_control temp="430" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="440" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="450" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="460" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="470" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="480" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="490" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++        <game_control temp="510" cluster0="-1" cluster1="-1" cluster2="-1" fps="0"/>
++    </default_policy>
++</game_thermal_config>' > "$module$file"
++  fi
++done
++
++# QEGA_Config.txt
++find $dirs -type f -name "QEGA_Config.txt" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  echo "SkinTemperatureNode:   battery
++SkinNodeThrottleTemp:  55000
++#GameID   GameAPK    MaxTemperature  MaxCurrent  AvgCurrent
++100001    hok         52000          2000        1800
++0         adaptive    55000          2000        1800" > "$module$file"
++done
++
++# Preserve commas and unrelated fields in OEM JSON.
++find $dirs -type f -name "devices_config.json" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  sed -E \
++    -e 's/("battery\.temperate\.range"[[:space:]]*:[[:space:]]*)"[^"]*"/\1"[100,500]"/' \
++    -e 's/("high\.capacity\.battery\.temperate\.range"[[:space:]]*:[[:space:]]*)"[^"]*"/\1"[100,500]"/' \
++    -e '/"high\.capacity\.threshold"[[:space:]]*:[[:space:]]*100([[:space:]]*[,}]|[[:space:]]*$)/!s/("high\.capacity\.threshold"[[:space:]]*:[[:space:]]*)[0-9]+/\185/' \
++    "$file" > "$module$file"
++done
++
++# charging_thermal_config_default.txt charging_hyper_mode_config.txt
++find $dirs -type f -name "charging_*txt" 2>/dev/null | while IFS= read -r file; do
++  mkdir -p "$(dirname "$module$file")"
++  echo -n '' > "$module$file"
++  while IFS= read -r line || [ -n "$line" ]; do
++    case "$line" in
++     *:=*)
++       echo "$line" >> "$module$file"
++     ;;
++     *,*,*)
++       temp=$(echo "$line" | awk -F, '{print $1}')
++       current=$(echo "$line" | awk -F, '{print $2}')
++       t=$(echo "$line" | awk -F, '{print $3}')
++       case "$temp" in
++         ""|*[!0-9]*) printf '%s\n' "$line" >> "$module$file"; continue ;;
++       esac
++       temp=$((temp+50)) # + 5°C
++       echo "$temp,$current,$t" >> "$module$file"
++     ;;
++     *)
++       echo "$line" >> "$module$file"
++     ;;
++    esac
++  done < "$file"
++done
++
++# D1100/1200
++soc=$(getprop ro.board.platform)
++if [[ "$soc" == 'mt6891' ]] || [[ "$soc" == 'mt6893' ]] || [[ "$soc" == 'mt6889' ]]; then
++  mkdir -p "$module/system/vendor/etc"
++  mkdir -p "$module/system/vendor/etc/.tp"
++  if [[ -d /odm/etc/powerhal ]]; then
++    mkdir -p "$module/odm/etc/powerhal"
++  fi
++
++  for file in power_app_cfg.xml powercontable.xml powerscntbl.xml
++  do
++    cp -f "$SRC/assets/d1x00/$file" "$module/system/vendor/etc/$file"
++    if [[ -d /odm/etc/powerhal ]]; then
++      cp -f "$SRC/assets/d1x00/$file" "$module/odm/etc/powerhal/$file"
++    fi
++  done
++  cp -f "$SRC/assets/d1x00/tp/ht120.mtc" "$module/system/vendor/etc/.tp/.ht120.mtc"
++  cp -f "$SRC/assets/d1x00/tp/thermal_policy_08" "$module/system/vendor/etc/.tp/.thermal_policy_08"
++  cp -f "$SRC/assets/d1x00/tp/thermal.conf" "$module/system/vendor/etc/.tp/thermal.conf"
++  cp -f "$SRC/assets/d1x00/tp/thermal.off.conf" "$module/system/vendor/etc/.tp/thermal.off.conf"
++fi
++
++# Mediatek thermal config
++mtk_t=/vendor/etc/thermal
++if [[ -d $mtk_t ]]; then
++  mkdir -p "$module/system$mtk_t"
++  for entry in "$mtk_t"/*
++  do
++    [ -f "$entry" ] || continue
++    file=${entry##*/}
++    case $file in
++      "disable_"*|"fix_ttj_95.conf")
++        cp "$mtk_t/$file" "$module/system$mtk_t/"
++      ;;
++      "fix_ttj_85.conf")
++        [ ! -f "$mtk_t/fix_ttj_95.conf" ] || cp "$mtk_t/fix_ttj_95.conf" "$module/system$mtk_t/$file"
++      ;;
++      *)
++        echo $file
++        if [[ -f "$mtk_t/disable_skin_control.conf" ]]; then
++         cp "$mtk_t/disable_skin_control.conf" "$module/system$mtk_t/$file"
++        else
++         [ ! -f "$mtk_t/fix_ttj_95.conf" ] || cp "$mtk_t/fix_ttj_95.conf" "$module/system$mtk_t/$file"
++        fi
++      ;;
++    esac
++  done
++fi
++
++
++true
+--- /dev/null
++++ b/service.sh
+@@ -0,0 +1,42 @@
++#!/system/bin/sh
++MODDIR=${0%/*}
++[ "$KSU" = true ] || exit 0
++# Each write is optional: kernel interfaces differ between devices.
++write_node() {
++  [ -f "$2" ] || return 0
++  printf '%s\n' "$1" > "$2" 2>/dev/null || return 0
++}
++lock_value() {
++  [ -f "$2" ] || return 0
++  chmod 0644 "$2" 2>/dev/null || return 0
++  write_node "$1" "$2"
++  chmod 0444 "$2" 2>/dev/null || :
++}
++soc=$(getprop ro.board.platform)
++case "$soc" in
++  mt6891|mt6893|mt6889)
++    . "$MODDIR/assets/d1x00/service.sh"
++    ;;
++  *)
++    for tz in /sys/class/thermal/thermal_zone*; do
++      [ -f "$tz/type" ] && [ -f "$tz/emul_temp" ] || continue
++      value=29500
++      case "$(cat "$tz/type")" in
++        pm8550_gpio03_usr|pm8550vs_g_tz|pm8550b_tz|pm8550vs_c_tz|pa-therm2-sys3|rear-tof-therm|cam-flash-therm|batt-therm|usb-therm|wlan-therm|xo-therm|oplus_thermal_ipa|board_temp|ap_ntc|ltepa_ntc|nrpa_ntc|wcn_temp) ;;
++        shell*) value=33000 ;;
++        *) continue ;;
++      esac
++      write_node "$value" "$tz/emul_temp"
++    done
++    for i in 0 1 2 3 4 5 6 7 8 9; do
++      write_node "$i 29500" /proc/shell-temp
++    done
++    gu=/proc/oplus-votable/GAUGE_UPDATE
++    for node in force_val force_active; do
++      [ -f "$gu/$node" ] && chmod 0666 "$gu/$node" 2>/dev/null
++    done
++    write_node 1000 "$gu/force_val"
++    write_node 1 "$gu/force_active"
++    ;;
++esac
++exit 0
+--- /dev/null
++++ b/system.prop
+@@ -0,0 +1,3 @@
++persist.sys.horae.enable=0
++persist.sys.oplus.wifi.sla.game_high_temperature=50
++persist.sys.environment.temp=25

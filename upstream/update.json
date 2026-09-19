@@ -1,0 +1,6 @@
+{
+  "version": "4.2.1",
+  "versionCode": 4210,
+  "zipUrl": "https://vtools.oss-cn-beijing.aliyuncs.com/addin/extreme_gt_4.2.1.zip",
+  "changelog": "4.1.0: 调整shell-temp伪装。调整挂载脚本。4.2.0：修复文件权限问题。4.2.1：提高充电温度墙。"
+}

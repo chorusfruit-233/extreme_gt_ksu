@@ -1,0 +1,50 @@
+name: Build KernelSU module
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes bubblewrap patch
+      - name: Fetch pinned KernelSU BusyBox
+        env:
+          KSU_COMMIT: 85cab5f841b55bed180c10dfdbe33f876aba7820
+          BUSYBOX_SHA256: 060844b0769f7a50262854af027c4d6076a212d160a51309b53057cfb7122900
+        run: |
+          curl --fail --location --retry 3 \
+            "https://raw.githubusercontent.com/tiann/KernelSU/${KSU_COMMIT}/userspace/ksud/bin/x86_64/busybox" \
+            --output "$RUNNER_TEMP/busybox"
+          printf '%s  %s\n' "$BUSYBOX_SHA256" "$RUNNER_TEMP/busybox" | sha256sum --check
+          chmod 0755 "$RUNNER_TEMP/busybox"
+          echo "BUSYBOX=$RUNNER_TEMP/busybox" >> "$GITHUB_ENV"
+      - name: Test and build
+        run: python3 scripts/ci.py
+      - name: Upload installable module and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: extreme-gt-ksu-${{ github.run_number }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+            patches/0001-kernelsu-hybrid-mount.patch
+          if-no-files-found: error
+          retention-days: 30
